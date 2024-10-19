@@ -1,49 +1,50 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace QOL;
+namespace QOL {
 
-public class SaveableGunPreset
-{
-    public string PresetName { get; }
-    public List<int> Weapons { get; }
-
-    public SaveableGunPreset(List<int> activeWeapons, string presetName)
+    public class SaveableGunPreset
     {
-        PresetName = presetName;
-        Weapons = activeWeapons;
-    }
+        public string PresetName { get; }
+        public List<int> Weapons { get; }
 
-    public SaveableGunPreset(JSONNode presetJson)
-    {
-        PresetName = presetJson["name"];
-        Weapons = new List<int>();
-
-        foreach (var weaponJson in presetJson["guns"])
+        public SaveableGunPreset(List<int> activeWeapons, string presetName)
         {
-            int weaponIndex = weaponJson.Value;
-            Weapons.Add(weaponIndex);
+            PresetName = presetName;
+            Weapons = activeWeapons;
         }
-    }
 
-    public JSONNode ToJson()
-    {
-        var jsonObj = new JSONObject();
-        jsonObj.Add("name", PresetName);
+        public SaveableGunPreset(JSONNode presetJson)
+        {
+            PresetName = presetJson["name"];
+            Weapons = new List<int>();
 
-        var jsonMaps = new JSONArray();
-        foreach (var weapon in Weapons) 
-            jsonMaps.Add(weapon);
+            foreach (var weaponJson in presetJson["guns"])
+            {
+                int weaponIndex = weaponJson.Value;
+                Weapons.Add(weaponIndex);
+            }
+        }
 
-        jsonObj.Add("guns", jsonMaps);
-        return jsonObj;
-    }
+        public JSONNode ToJson()
+        {
+            var jsonObj = new JSONObject();
+            jsonObj.Add("name", PresetName);
 
-    public override string ToString()
-    {
-        var objStr = "Preset Name: " + PresetName + "\nGuns:\n\t{ ";
-        objStr = Weapons.Aggregate(objStr, (current, weapon) => current + weapon + ", ");
+            var jsonMaps = new JSONArray();
+            foreach (var weapon in Weapons)
+                jsonMaps.Add(weapon);
 
-        return objStr.Remove(objStr.Length-2) + "}";
+            jsonObj.Add("guns", jsonMaps);
+            return jsonObj;
+        }
+
+        public override string ToString()
+        {
+            var objStr = "Preset Name: " + PresetName + "\nGuns:\n\t{ ";
+            objStr = Weapons.Aggregate(objStr, (current, weapon) => current + weapon + ", ");
+
+            return objStr.Remove(objStr.Length - 2) + "}";
+        }
     }
 }

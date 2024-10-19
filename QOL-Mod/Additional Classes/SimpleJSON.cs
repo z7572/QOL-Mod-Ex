@@ -41,7 +41,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 
-namespace QOL;
+namespace QOL {
 
 public enum JSONNodeType
 {
@@ -1423,12 +1423,13 @@ internal partial class JSONLazyCreator : JSONNode
         aSB.Append("null");
     }
 }
-// End of JSONLazyCreator
+    // End of JSONLazyCreator
 
-public static class JSON
-{
-    public static JSONNode Parse(string aJSON)
+    public static class JSON
     {
-        return JSONNode.Parse(aJSON);
+        public static JSONNode Parse(string aJSON)
+        {
+            return JSONNode.Parse(aJSON);
+        }
     }
 }
