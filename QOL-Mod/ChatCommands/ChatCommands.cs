@@ -81,6 +81,7 @@ namespace QOL
             Traverse.Create(CmdDict["logprivate"]).Field(autoParamsBackingField).SetValue(CmdNames);
             Traverse.Create(CmdDict["logpublic"]).Field(autoParamsBackingField).SetValue(CmdNames);
             Traverse.Create(CmdDict["maps"]).Field(autoParamsBackingField).SetValue(MapPresetHandler.MapPresetNames);
+            Traverse.Create(CmdDict["weapons"]).Field(autoParamsBackingField).SetValue(GunPresetHandler.GunPresetNames);
 
             // On-startup options need to map their values to respective cmds
             CmdDict["gg"].IsEnabled = ConfigHandler.GetEntry<bool>("ggstartup");
