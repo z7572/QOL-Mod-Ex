@@ -139,7 +139,17 @@ namespace QOL
             return "No value";
         }
 
-        public static void SendPublicOutput(string msg) => localNetworkPlayer.OnTalked(msg);
+        public static void SendPublicOutput(string msg)
+        {
+            if (ChatManagerPatches.m_NetworkPlayer)
+            {
+                localNetworkPlayer.OnTalked(msg);
+            }
+            else
+            {
+                return; // TODO: Add local output support
+            }
+        }
 
         public static void SendModOutput(string msg, Command.LogType logType, bool isPublic = true, bool toggleState = true)
         {

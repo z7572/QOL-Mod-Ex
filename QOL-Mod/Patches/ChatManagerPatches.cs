@@ -14,6 +14,11 @@ namespace QOL {
     {
         public static void Patches(Harmony harmonyInstance) // ChatManager methods to patch with the harmony __instance
         {
+            var awakeMethod = AccessTools.Method(typeof(ChatManager), "Awake");
+            var awakeMethodPrefix = new HarmonyMethod(typeof(ChatManagerPatches)
+                 .GetMethod(nameof(AwakeMethodPrefix)));
+            harmonyInstance.Patch(awakeMethod, prefix: awakeMethodPrefix);
+
             var startMethod = AccessTools.Method(typeof(ChatManager), "Start");
             var startMethodPostfix = new HarmonyMethod(typeof(ChatManagerPatches)
                 .GetMethod(nameof(StartMethodPostfix))); // Patches Start() with prefix method
@@ -22,7 +27,8 @@ namespace QOL {
             var updateMethod = AccessTools.Method(typeof(ChatManager), "Update");
             var updateMethodTranspiler = new HarmonyMethod(typeof(ChatManagerPatches)
                 .GetMethod(nameof(UpdateMethodTranspiler))); // Patches Update() with transpiler method
-            harmonyInstance.Patch(updateMethod, transpiler: updateMethodTranspiler);
+            var updateMethodPostfix = new HarmonyMethod(typeof(ChatManagerPatches).GetMethod(nameof(UpdateMethodPostfix)));
+            harmonyInstance.Patch(updateMethod, transpiler: updateMethodTranspiler, postfix: updateMethodPostfix);
 
             var stopTypingMethod = AccessTools.Method(typeof(ChatManager), "StopTyping");
             var stopTypingMethodPostfix = new HarmonyMethod(typeof(ChatManagerPatches)
@@ -44,6 +50,12 @@ namespace QOL {
             harmonyInstance.Patch(talkMethod, postfix: talkMethodPostfix);
         }
 
+        // Enable chat bubble in all lobbies
+        public static bool AwakeMethodPrefix(ChatManager __instance)
+        {
+            return false;
+        }
+
         // TODO: Remove unneeded parameters and perhaps this entire method
         public static void StartMethodPostfix(ChatManager __instance)
         {
@@ -54,6 +66,28 @@ namespace QOL {
 
             // Assigns m_NetworkPlayer value to Helper.localNetworkPlayer if networkPlayer is ours
             Helper.InitValues(__instance, playerID);
+        }
+
+        public static void UpdateMethodPostfix(ChatManager __instance)
+        {
+            var chatFieldInfo = AccessTools.Field(typeof(ChatManager), "chatField");
+            TMP_InputField chatField = (TMP_InputField)chatFieldInfo.GetValue(__instance);
+
+            m_NetworkPlayer = Traverse.Create(__instance).Field("m_NetworkPlayer").GetValue<NetworkPlayer>();
+            if (true) //Set m_NetworkPlayer always true
+            {
+                if (Input.GetKeyDown(KeyCode.Slash))
+                {
+                    if (!ChatManager.isTyping && !PauseManager.isPaused)
+                    {
+                        __instance.StartTyping();
+                        chatField.text = "/";
+                        chatField.DeactivateInputField();
+                        chatField.stringPosition = chatField.text.Length;
+                        chatField.ActivateInputField();
+                    }
+                }
+            }
         }
 
         // Transpiler patch for Update() of ChatManager; Adds CIL instructions to call CheckForArrowKeys()
@@ -88,6 +122,30 @@ namespace QOL {
             });
 
                 break;
+            }
+
+            // Allow chat in all lobbies
+            // Find and remove "if (m_NetworkPlayer.HasLocalControl) {...}"
+            var targetInstructions = new[]
+            {
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(ChatManager), "m_NetworkPlayer")),
+                new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(NetworkPlayer), "get_HasLocalControl")),
+                new CodeInstruction(OpCodes.Brfalse)
+            };
+            
+            for (var i = 0; i < instructionList.Count - 4; i++)
+            {
+                if (instructionList[i].opcode == targetInstructions[0].opcode &&
+                    instructionList[i + 1].opcode == targetInstructions[1].opcode &&
+                    instructionList[i + 1].operand == targetInstructions[1].operand &&
+                    instructionList[i + 2].opcode == targetInstructions[2].opcode &&
+                    instructionList[i + 2].operand == targetInstructions[2].operand &&
+                    instructionList[i + 3].opcode == targetInstructions[3].opcode)
+                {
+                    instructionList.RemoveRange(i, 4);
+                    break;
+                }
             }
 
             return instructionList.AsEnumerable(); // Returns the now modified list of IL instructions
@@ -404,6 +462,8 @@ namespace QOL {
 
             return newMessage.ToString();
         }
+
+        public static bool m_NetworkPlayer;
 
         private static int _upArrowCounter; // Holds how many times the up-arrow key is pressed while typing
                                             //private static bool _startedTypingParam;

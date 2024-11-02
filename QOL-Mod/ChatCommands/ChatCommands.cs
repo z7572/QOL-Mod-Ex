@@ -40,7 +40,7 @@ namespace QOL
             new Command("nuky", NukyCmd, 0, true).MarkAsToggle(),
             new Command("maps", MapsCmd, 1, true, MapPresetHandler.MapPresetNames),
             new Command("mute", MuteCmd, 1, true, PlayerUtils.PlayerColorsParams),
-            new Command("music", MusicCmd, 1, true, new List<string>(3) { "loop", "play", "skip" }),
+            new Command("music", MusicCmd, 1, true, new List<string>(3) { "loop", "play", "skip" }).MarkAsToggle(),
             new Command("ouchmsg", OuchCmd, 0, true).MarkAsToggle(),
             new Command("ping", PingCmd, 1, true, PlayerUtils.PlayerColorsParams),
             new Command("private", PrivateCmd, 0, true),
@@ -655,10 +655,18 @@ namespace QOL
                 case "loop": // Loops the current song
                     Helper.SongLoop = !Helper.SongLoop;
                     cmd.IsEnabled = Helper.SongLoop;
-                    cmd.SetOutputMsg("Song looping toggled.");
+                    cmd.SetOutputMsg($"Song looping toggled {(Helper.SongLoop ? "on" : "off")}.");
                     return;
                 case "play": // Plays song that corresponds to the specified index (0 to # of songs - 1)
                     var songIndex = int.Parse(args[1]);
+                    var songLoop = false;
+                    if (args.Length == 3)
+                    {
+                        if (args[2].ToLower() == "loop")
+                        {
+                            songLoop = true;
+                        }
+                    }
                     var musicHandler = MusicHandler.Instance;
 
                     if (songIndex > musicHandler.myMusic.Length - 1 || songIndex < 0)
@@ -674,11 +682,18 @@ namespace QOL
                     audioSource.clip = musicHandler.myMusic[songIndex].clip;
                     audioSource.volume = musicHandler.myMusic[songIndex].volume;
                     audioSource.Play();
-
-                    Helper.SongLoop = false;
-                    cmd.IsEnabled = true;
-
-                    cmd.SetOutputMsg($"Now playing song #{songIndex} out of {musicHandler.myMusic.Length - 1}.");
+                    if (songLoop)
+                    {
+                        Helper.SongLoop = true;
+                        cmd.IsEnabled = true;
+                        cmd.SetOutputMsg($"Now looping song #{songIndex} out of {musicHandler.myMusic.Length - 1}.");
+                    }
+                    else
+                    {
+                        Helper.SongLoop = false;
+                        cmd.IsEnabled = true;
+                        cmd.SetOutputMsg($"Now playing song #{songIndex} out of {musicHandler.myMusic.Length - 1}.");
+                    }
                     return;
                 default:
                     return;
