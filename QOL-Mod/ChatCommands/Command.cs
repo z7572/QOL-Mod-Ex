@@ -109,7 +109,7 @@ namespace QOL {
                 Debug.LogError("Exception occured when running command: " + e);
 
                 // _currentOutputMsg = "Something went wrong! DM Monky#4600 if bug.";
-                _currentOutputMsg = e.ToString();
+                _currentOutputMsg = e.Message;
                 Helper.SendModOutput(_currentOutputMsg, LogType.Warning, false);
                 _currentOutputMsg = "";
                 throw;

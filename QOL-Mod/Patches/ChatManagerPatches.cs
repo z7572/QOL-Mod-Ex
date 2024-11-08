@@ -75,7 +75,7 @@ namespace QOL {
             TMP_InputField chatField = (TMP_InputField)chatFieldInfo.GetValue(__instance);
 
             // Enable chat in all lobbies (will not show chat bubble, some of commands work)
-            //m_NetworkPlayer = Traverse.Create(__instance).Field("m_NetworkPlayer").GetValue<NetworkPlayer>();
+            m_NetworkPlayer = Traverse.Create(__instance).Field("m_NetworkPlayer").GetValue<NetworkPlayer>();
             if (true) //m_NetworkPlayer always true
             {
                 if (!ChatManager.isTyping && !PauseManager.isPaused)
@@ -90,10 +90,10 @@ namespace QOL {
                     }
                 }
                 
-                // Press (Ctrl + )Tab to switch commands
-                // TODO: Move it into CheckForArrowkeysAndAutoComplete()
-                //       because switch cmd will skip current cmd
-                if (!Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab) && ChatManager.isTyping)
+                // Press (Ctrl + )Tab or scroll wheel to switch commands
+                // TODO: fix bug: cmd will skip current cmd (Press Tab will call CheckForArrowKeysAndAutoComplete())
+                if ((!Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab))
+                    || Input.GetAxis("Mouse ScrollWheel") < 0 && ChatManager.isTyping)
                 {
                     var txt = chatField.text;
                     if (!txt.StartsWith(Command.CmdPrefix)) return; // Not a command
@@ -156,7 +156,8 @@ namespace QOL {
                         }
                     }
                 }
-                else if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab) && ChatManager.isTyping)
+                else if ((Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab))
+                    || Input.GetAxis("Mouse ScrollWheel") > 0 && ChatManager.isTyping)
                 {
                     var txt = chatField.text;
                     if (!txt.StartsWith(Command.CmdPrefix)) return; // Not a command

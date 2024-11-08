@@ -24,10 +24,12 @@ namespace QOL
             new Command("config", ConfigCmd, 1, true, ConfigHandler.GetConfigKeys().ToList()),
             new Command("deathmsg", DeathMsgCmd, 0, false).MarkAsToggle(),
             new Command("dm", DmCmd, 1, false, PlayerUtils.PlayerColorsParams),
+            new Command("execute", ExecuteCmd, 1, true, new List<string> { "all" }.Union(PlayerUtils.PlayerColorsParams).ToList()),
             new Command("fov", FovCmd, 1, true),
             new Command("fps", FpsCmd, 1, true),
             new Command("friend", FriendCmd, 1, true, PlayerUtils.PlayerColorsParams),
             new Command("gg", GgCmd, 0, true).MarkAsToggle(),
+            new Command("gun", GunCmd, 0, true),
             new Command("help", HelpCmd, 0, true),
             new Command("hp", HpCmd, 0, false, PlayerUtils.PlayerColorsParams).SetAlwaysPublic(),
             new Command("id", IdCmd, 1, true, PlayerUtils.PlayerColorsParams),
@@ -51,11 +53,13 @@ namespace QOL
             new Command("rich", RichCmd, 0, true).MarkAsToggle(),
             new Command("shrug", ShrugCmd, 0, false).SetAlwaysPublic(),
             new Command("stat", StatCmd, 1, true),
+            new Command("sudo", SudoCmd, 2, true, new List<string> { "all" }.Union(PlayerUtils.PlayerColorsParams).ToList()),
             new Command("suicide", SuicideCmd, 0, false),
             new Command("translate", TranslateCmd, 0, true).MarkAsToggle(),
             new Command("uncensor", UncensorCmd, 0, true).MarkAsToggle(),
             new Command("uwu", UwuCmd, 0, true).MarkAsToggle(),
             new Command("ver", VerCmd, 0, true),
+            new Command("win", WinCmd, 0, true, PlayerUtils.PlayerColorsParams),
             new Command("weapons", WeaponsCmd, 1, true, GunPresetHandler.GunPresetNames),
             new Command("winnerhp", WinnerHpCmd, 0, false).MarkAsToggle(),
             new Command("winstreak", WinstreakCmd, 0, true).MarkAsToggle()
@@ -75,7 +79,7 @@ namespace QOL
             if (File.Exists(Plugin.CmdAliasesPath))
                 LoadCmdAliases();
 
-            // Reflection hackery so that auto-params for the alias,log, maps cmds work
+            // Reflection hackery so that auto-params for the alias,log, maps, weapons cmds work
             const string autoParamsBackingField = $"<{nameof(Command.AutoParams)}>k__BackingField";
             Traverse.Create(CmdDict["alias"]).Field(autoParamsBackingField).SetValue(CmdNames);
             Traverse.Create(CmdDict["logprivate"]).Field(autoParamsBackingField).SetValue(CmdNames);
@@ -319,6 +323,27 @@ namespace QOL
                 channel);
         }
 
+        // Execute commands as specified player
+        private static void ExecuteCmd(string[] args, Command cmd)
+        {
+            var colorWanted = args[0] != "all" ? Helper.GetIDFromColor(args[0]) : ushort.MaxValue;
+            var txt = string.Join(" ", args, 2, args.Length - 1);
+            var bytes = Encoding.UTF8.GetBytes(txt);
+            if (colorWanted != ushort.MaxValue)
+            {
+                var channel = colorWanted switch
+                {
+                    0 => 3, // Yellow
+                    1 => 5, // Red
+                    2 => 7, // Green
+                    3 => 9, // Blue
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+                GameManager.Instance.mMultiplayerManager.OnPlayerTalked(bytes, channel, colorWanted);
+                return;
+            }
+        }
+
         private static void FovCmd(string[] args, Command cmd) // TODO: Do tryparse instead to provide better error handling
         {
             var success = int.TryParse(args[0], out var newFov);
@@ -366,6 +391,20 @@ namespace QOL
             cmd.SetOutputMsg("Toggled AutoGG.");
         }
 
+        private static void GunCmd(string[] args, Command cmd)
+        {
+            if (args[0] == "-1")
+            {
+                AccessTools.Method(typeof(GameManager), "SpawnRandomWeapon")
+                    .Invoke(GameManager.Instance, null);
+
+                return;
+            }
+
+            var weaponWanted = byte.Parse(args[0]);
+            Helper.localNetworkPlayer.gameObject.GetComponent<Fighting>().NetworkPickUpWeapon(weaponWanted);
+            cmd.SetOutputMsg("Gave gun #" + weaponWanted);
+        }
 
         private static void WeaponsCmd(string[] args, Command cmd)
         {
@@ -653,21 +692,8 @@ namespace QOL
 
                     cmd.SetOutputMsg("Current song skipped.");
                     return;
-                case "loop": // Loops the current song
-                    Helper.SongLoop = !Helper.SongLoop;
-                    cmd.IsEnabled = Helper.SongLoop;
-                    cmd.SetOutputMsg($"Song looping toggled {(Helper.SongLoop ? "on" : "off")}.");
-                    return;
                 case "play": // Plays song that corresponds to the specified index (0 to # of songs - 1)
                     var songIndex = int.Parse(args[1]);
-                    var songLoop = false;
-                    if (args.Length == 3)
-                    {
-                        if (args[2].ToLower() == "loop")
-                        {
-                            songLoop = true;
-                        }
-                    }
                     var musicHandler = MusicHandler.Instance;
 
                     if (songIndex > musicHandler.myMusic.Length - 1 || songIndex < 0)
@@ -676,24 +702,44 @@ namespace QOL
                         cmd.SetLogType(Command.LogType.Warning);
                         return;
                     }
-
                     Traverse.Create(musicHandler).Field("currntSong").SetValue(songIndex);
-
                     var audioSource = musicHandler.GetComponent<AudioSource>();
                     audioSource.clip = musicHandler.myMusic[songIndex].clip;
                     audioSource.volume = musicHandler.myMusic[songIndex].volume;
                     audioSource.Play();
-                    if (songLoop)
+
+                    Helper.SongLoop = false;
+                    cmd.IsEnabled = true;
+                    cmd.SetOutputMsg($"Now playing song #{songIndex} out of {musicHandler.myMusic.Length - 1}.");
+                    return;
+                case "loop": // Loops the current or specified song
+                    if (args.Length == 1)
                     {
+                        Helper.SongLoop = !Helper.SongLoop;
+                        cmd.IsEnabled = Helper.SongLoop;
+                        cmd.SetOutputMsg($"Song looping toggled {(Helper.SongLoop ? "on" : "off")}.");
+                    }
+                    else if (args.Length == 2)
+                    {
+                        songIndex = int.Parse(args[1]);
+                        musicHandler = MusicHandler.Instance;
+
+                        if (songIndex > musicHandler.myMusic.Length - 1 || songIndex < 0)
+                        {
+                            cmd.SetOutputMsg($"Invalid index: input must be between 0 and {musicHandler.myMusic.Length - 1}.");
+                            cmd.SetLogType(Command.LogType.Warning);
+                            return;
+                        }
+                        Traverse.Create(musicHandler).Field("currntSong").SetValue(songIndex);
+                        audioSource = musicHandler.GetComponent<AudioSource>();
+                        audioSource.clip = musicHandler.myMusic[songIndex].clip;
+                        audioSource.volume = musicHandler.myMusic[songIndex].volume;
+                        audioSource.Play();
+
                         Helper.SongLoop = true;
                         cmd.IsEnabled = true;
                         cmd.SetOutputMsg($"Now looping song #{songIndex} out of {musicHandler.myMusic.Length - 1}.");
-                    }
-                    else
-                    {
-                        Helper.SongLoop = false;
-                        cmd.IsEnabled = true;
-                        cmd.SetOutputMsg($"Now playing song #{songIndex} out of {musicHandler.myMusic.Length - 1}.");
+                        return;
                     }
                     return;
                 default:
@@ -841,6 +887,27 @@ namespace QOL
                              Helper.GetTargetStatValue(targetStats, targetPlayerStat));
         }
 
+        // Speak as specified player
+        private static void SudoCmd(string[] args, Command cmd)
+        {
+            var colorWanted = args[0] != "all" ? Helper.GetIDFromColor(args[0]) : ushort.MaxValue;
+            var txt = string.Join(" ", args, 2, args.Length - 1);
+            var bytes = Encoding.UTF8.GetBytes(txt);
+            if (colorWanted != ushort.MaxValue)
+            {
+                var channel = colorWanted switch
+                {
+                    0 => 3, // Yellow
+                    1 => 5, // Red
+                    2 => 7, // Green
+                    3 => 9, // Blue
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+                GameManager.Instance.mMultiplayerManager.OnPlayerTalked(bytes, channel, colorWanted);
+                return;
+            }
+        }
+
         // Kills user
         private static void SuicideCmd(string[] args, Command cmd)
         {
@@ -874,6 +941,28 @@ namespace QOL
 
         // Outputs the mod version number to chat
         private static void VerCmd(string[] args, Command cmd) => cmd.SetOutputMsg("QOL Mod: " + Plugin.VersionNumber);
+
+        // Set the selected player win and switch to selected map
+        private static void WinCmd(string[] args, Command cmd)
+        {
+            if (args.Length < 2)
+            {
+                cmd.SetLogType(Command.LogType.Warning);
+                cmd.SetOutputMsg("Need 2 arguments!");
+            }
+            var mapIndex = int.Parse(args[1]);
+            mapIndex = mapIndex == -1 ? Random.Range(1, 125) : mapIndex;
+            var sendPacketToAllMethod = AccessTools.Method(typeof(MultiplayerManager), "SendMessageToAllClients");
+            sendPacketToAllMethod.Invoke(GameManager.Instance.mMultiplayerManager, new object[]
+            {
+            new byte[] {(byte) Helper.GetIDFromColor(args[0]), 0}.Concat(BitConverter.GetBytes(mapIndex)).ToArray(),
+            P2PPackageHandler.MsgType.MapChange,
+            false,
+            0UL,
+            EP2PSend.k_EP2PSendReliable,
+            0
+            });
+        }
 
         // Enables/Disables system for outputting the HP of the winner after each round to chat
         private static void WinnerHpCmd(string[] args, Command cmd)

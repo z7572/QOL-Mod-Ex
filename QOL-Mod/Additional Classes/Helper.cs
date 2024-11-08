@@ -58,6 +58,7 @@ namespace QOL
 
                 if (acceptableFileExtension is ".ogg" or ".wav")
                     __instance.StartCoroutine(ImportWav(filePath, CreateSongAndAddToMusic));
+                    
             }
 
             ClientData = GameManager.Instance.mMultiplayerManager.ConnectedClients;
@@ -161,7 +162,7 @@ namespace QOL
 
             var msgColor = logType switch
             {
-                Command.LogType.Warning => "<#FF7F50>",
+                Command.LogType.Warning => "<#CC0000>",
                 // Enabled => green, disabled => gray
                 Command.LogType.Success => toggleState ? "<#006400>" : "<#56595c>",
                 _ => ""
