@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace QOL {
@@ -24,7 +25,8 @@ namespace QOL {
         public string Name { get; }
         public List<string> Aliases { get; } = new();
         // TODO: Implement auto-suggested parameters property
-        public List<string> AutoParams { get; }
+        //public List<string> AutoParams { get; }
+        public Dictionary<string, object> AutoParams { get; private set; }
         public bool IsToggle { get; private set; }
         public bool IsEnabled { get; set; }
 
@@ -42,12 +44,26 @@ namespace QOL {
         private static LogType _currentLogType; // Any mod msg will be of type "success" by default
 
         public Command(string name, Action<string[], Command> cmdMethod, int minNumExpectedArgs, bool defaultPrivate,
-            List<string> autoParameters = null)
+            object autoParameters = null)
         {
             Name = CmdPrefix + name;
             _runCmdAction = cmdMethod;
             _minExpectedArgs = minNumExpectedArgs;
-            AutoParams = autoParameters;
+
+            // Compatible with old structure List<string> autocompletion
+            if (autoParameters is List<string> simpleAutoParams)
+            {
+                AutoParams = simpleAutoParams.ToDictionary(param => param, param => (object)null);
+            }
+            else if (autoParameters is Dictionary<string, object> complexAutoParams)
+            {
+                AutoParams = complexAutoParams;
+            }
+            else
+            {
+                AutoParams = null;
+            }
+
             IsPublic = !defaultPrivate;
         }
 

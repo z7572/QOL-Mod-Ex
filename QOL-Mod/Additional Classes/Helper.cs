@@ -142,7 +142,7 @@ namespace QOL
 
         public static void SendPublicOutput(string msg)
         {
-            if (ChatManagerPatches.m_NetworkPlayer)
+            if (MatchmakingHandler.IsNetworkMatch)
             {
                 localNetworkPlayer.OnTalked(msg);
             }
@@ -160,16 +160,19 @@ namespace QOL
                 return;
             }
 
-            var msgColor = logType switch
+            if (MatchmakingHandler.IsNetworkMatch)
             {
-                Command.LogType.Warning => "<#CC0000>",
-                // Enabled => green, disabled => gray
-                Command.LogType.Success => toggleState ? "<#006400>" : "<#56595c>",
-                _ => ""
-            };
+                var msgColor = logType switch
+                {
+                    Command.LogType.Warning => "<#CC0000>",
+                    // Enabled => green, disabled => gray
+                    Command.LogType.Success => toggleState ? "<#006400>" : "<#56595c>",
+                    _ => ""
+                };
 
-            TMPText.richText = true;
-            LocalChat.Talk(msgColor + msg);
+                TMPText.richText = true;
+                LocalChat.Talk(msgColor + msg);
+            }
         }
 
         // Adapted from: https://github.com/deadlyfingers/UnityWav#notes

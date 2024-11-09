@@ -7,6 +7,7 @@ using System.Text;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace QOL {
 
@@ -28,8 +29,8 @@ namespace QOL {
             var updateMethodTranspiler = new HarmonyMethod(typeof(ChatManagerPatches)
                 .GetMethod(nameof(UpdateMethodTranspiler))); // Patches Update() with transpiler method
             var updateMethodPostfix = new HarmonyMethod(typeof(ChatManagerPatches).GetMethod(nameof(UpdateMethodPostfix)));
-            harmonyInstance.Patch(updateMethod, transpiler: updateMethodTranspiler);
             harmonyInstance.Patch(updateMethod, postfix: updateMethodPostfix);
+            harmonyInstance.Patch(updateMethod, transpiler: updateMethodTranspiler);
 
             var stopTypingMethod = AccessTools.Method(typeof(ChatManager), "StopTyping");
             var stopTypingMethodPostfix = new HarmonyMethod(typeof(ChatManagerPatches)
@@ -74,148 +75,131 @@ namespace QOL {
             var chatFieldInfo = AccessTools.Field(typeof(ChatManager), "chatField");
             TMP_InputField chatField = (TMP_InputField)chatFieldInfo.GetValue(__instance);
 
-            // Enable chat in all lobbies (will not show chat bubble, some of commands work)
-            m_NetworkPlayer = Traverse.Create(__instance).Field("m_NetworkPlayer").GetValue<NetworkPlayer>();
-            if (true) //m_NetworkPlayer always true
-            {
-                if (!ChatManager.isTyping && !PauseManager.isPaused)
+            // Enable inputting commands in local lobbies (will not show chat bubble, some of commands work)
+            if (!MatchmakingHandler.IsNetworkMatch)
+            { // These are the same as in the original code
+                if (ChatManager.isTyping)
                 {
-                    if (Input.GetKeyDown(KeyCode.Slash))
+                    if (EventSystem.current.currentSelectedGameObject != chatField)
+                    {
+                        chatField.Select();
+                    }
+                    if (Input.GetKeyDown(KeyCode.Escape))
+                    {
+                        __instance.StopTyping();
+                    }
+                }
+                if (Input.anyKeyDown && ChatManager.isTyping)
+                {
+                    ScreenshakeHandler.Instance.AddShake(UnityEngine.Random.insideUnitSphere * 0.01f);
+                    CheckForArrowKeysAndAutoComplete(chatField);
+                }
+                if (Input.GetKeyDown(KeyCode.Return))
+                {
+                    if (ChatManager.isTyping)
+                    {
+                        __instance.StopTyping();
+                    }
+                    else if (!PauseManager.isPaused)
                     {
                         __instance.StartTyping();
-                        chatField.DeactivateInputField();
-                        chatField.text = "/";
-                        chatField.stringPosition = chatField.text.Length;
-                        chatField.ActivateInputField();
                     }
                 }
-                
-                // Press (Ctrl + )Tab or scroll wheel to switch commands
-                // TODO: fix bug: cmd will skip current cmd (Press Tab will call CheckForArrowKeysAndAutoComplete())
-                if ((!Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab))
-                    || Input.GetAxis("Mouse ScrollWheel") < 0 && ChatManager.isTyping)
-                {
-                    var txt = chatField.text;
-                    if (!txt.StartsWith(Command.CmdPrefix)) return; // Not a command
-
-                    var txtLen = txt.Length;
-                    var allCmds = ChatCommands.CmdNames;
-                    var strPos = chatField.stringPosition;
-                    var matchedCmd = allCmds.FirstOrDefault(cmd => txt.ToLower() == cmd);
-                    var nextCmd = "";
-
-                    if (matchedCmd != null) // txt before cursor matches any command
-                    {
-                        txt = matchedCmd; // Clear possibly parameters
-
-                        var currentCmdIndex = allCmds.FindIndex(cmd => cmd.StartsWith(txt));
-
-                        nextCmd = currentCmdIndex >= 0 && currentCmdIndex < allCmds.Count - 1
-                            ? allCmds[currentCmdIndex + 1]
-                            : allCmds.First();
-
-                        chatField.DeactivateInputField();
-                        chatField.text = nextCmd;
-                        chatField.stringPosition = chatField.text.Length;
-                        chatField.ActivateInputField();
-                    }
-                    else // Must be inputting parameters
-                    {
-                        Debug.Log("Start parameter switch");
-                        
-                        Command cmd = null;
-                        var cmdName = txt.Replace(Command.CmdPrefix, "").Split(' ')[0].ToLower();
-                        Debug.Log("cmdName: " + cmdName);
-
-                        if (ChatCommands.CmdDict.ContainsKey(cmdName))
-                            cmd = ChatCommands.CmdDict[cmdName];
-
-                        if (cmd != null && cmd.AutoParams != null)
-                        {
-                            var targetCmdParams = cmd.AutoParams;
-                            var paramStartIndex = txt.IndexOf(' ') + 1;
-                            var currentParam = txt.Substring(paramStartIndex).Split(' ')[0];
-                            Debug.Log("currentParam: " + currentParam);
-
-                            var matchedParam = targetCmdParams.FirstOrDefault(p => p.StartsWith(currentParam));
-
-                            if (matchedParam == null || currentParam != matchedParam || !targetCmdParams.Contains(currentParam)) return; // Skip to complete present parameter
-
-                            var currentParamIndex = targetCmdParams.FindIndex(p => p.StartsWith(currentParam));
-                            Debug.Log("currentParamIndex: " + currentParamIndex);
-
-                            var nextParam = currentParamIndex >= 0 && currentParamIndex < targetCmdParams.Count - 1
-                                ? targetCmdParams[currentParamIndex + 1]
-                                : targetCmdParams.First();
-                            Debug.Log("[z7572] nextParam: " + nextParam);
-
-                            chatField.DeactivateInputField();
-                            chatField.text = txt.Substring(0, paramStartIndex) + nextParam;
-                            chatField.stringPosition = chatField.text.Length;
-                            chatField.ActivateInputField();
-                        }
-                    }
-                }
-                else if ((Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab))
-                    || Input.GetAxis("Mouse ScrollWheel") > 0 && ChatManager.isTyping)
-                {
-                    var txt = chatField.text;
-                    if (!txt.StartsWith(Command.CmdPrefix)) return; // Not a command
-
-                    var txtLen = txt.Length;
-                    var allCmds = ChatCommands.CmdNames;
-                    var strPos = chatField.stringPosition;
-                    var matchedCmd = allCmds.FirstOrDefault(cmd => txt.ToLower() == cmd);
-                    var prevCmd = "";
-
-                    if (matchedCmd != null) // txt before cursor matches any command
-                    {
-                        txt = matchedCmd; // Clear possibly parameters
-
-                        var currentCmdIndex = allCmds.FindIndex(cmd => cmd.StartsWith(txt));
-
-                        prevCmd = currentCmdIndex > 0 && currentCmdIndex < allCmds.Count
-                            ? allCmds[currentCmdIndex - 1]
-                            : allCmds.Last();
-
-                        chatField.DeactivateInputField();
-                        chatField.text = prevCmd;
-                        chatField.stringPosition = chatField.text.Length;
-                        chatField.ActivateInputField();
-                    }
-                    else // Must be inputting parameters
-                    {
-                        Command cmd = null;
-                        var cmdName = txt.Replace(Command.CmdPrefix, "").Split(' ')[0].ToLower();
-
-                        if (ChatCommands.CmdDict.ContainsKey(cmdName))
-                            cmd = ChatCommands.CmdDict[cmdName];
-
-                        if (cmd != null && cmd.AutoParams != null)
-                        {
-                            var targetCmdParams = cmd.AutoParams;
-                            var paramStartIndex = txt.IndexOf(' ') + 1;
-                            var currentParam = txt.Substring(paramStartIndex).Split(' ')[0];
-
-                            var matchedParam = targetCmdParams.FirstOrDefault(p => p.StartsWith(currentParam));
-
-                            if (matchedParam == null || currentParam != matchedParam || !targetCmdParams.Contains(currentParam)) return;
-
-                            var currentParamIndex = targetCmdParams.FindIndex(p => p.StartsWith(currentParam));
-
-                            var prevParam = currentParamIndex > 0 && currentParamIndex < targetCmdParams.Count
-                                ? targetCmdParams[currentParamIndex - 1]
-                                : targetCmdParams.Last();
-
-                            chatField.DeactivateInputField();
-                            chatField.text = txt.Substring(0, paramStartIndex) + prevParam;
-                            chatField.stringPosition = chatField.text.Length;
-                            chatField.ActivateInputField();
-                        }
-                    }
-                }
-
             }
+
+            if (!ChatManager.isTyping && !PauseManager.isPaused)
+            {
+                if (Input.GetKeyDown(KeyCode.Slash))
+                {
+                    __instance.StartTyping();
+                    chatField.DeactivateInputField();
+                    chatField.text = "/";
+                    chatField.stringPosition = chatField.text.Length;
+                    chatField.ActivateInputField();
+                }
+            }
+
+            // Scroll mouse wheel to switch commands
+            // TODO: fix bug: cmd will skip current cmd (Press Tab will call CheckForArrowKeysAndAutoComplete())
+            if (ChatManager.isTyping &&
+                //(!Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab)) ||
+                Input.GetKeyDown(KeyCode.PageDown) ||
+                Input.GetAxis("Mouse ScrollWheel") < 0
+                )
+            {
+                HandleCommandNavigation(forward: true);
+            }
+            else if (ChatManager.isTyping &&
+                //(Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab)) ||
+                Input.GetKeyDown(KeyCode.PageUp) ||
+                Input.GetAxis("Mouse ScrollWheel") > 0
+                )
+            {
+                HandleCommandNavigation(forward: false);
+            }
+
+            void HandleCommandNavigation(bool forward)
+            {
+                var txt = chatField.text;
+                if (!txt.StartsWith(Command.CmdPrefix)) return; // Not a command
+
+                var allCmds = ChatCommands.CmdNames;
+                var matchedCmd = allCmds.FirstOrDefault(cmd => txt.ToLower() == cmd);
+
+                if (matchedCmd != null)
+                {
+                    var currentCmdIndex = allCmds.FindIndex(cmd => cmd.StartsWith(matchedCmd));
+                    string newCmd = forward
+                        ? (currentCmdIndex >= 0 && currentCmdIndex < allCmds.Count - 1 ? allCmds[currentCmdIndex + 1] : allCmds.First())
+                        : (currentCmdIndex > 0 && currentCmdIndex < allCmds.Count ? allCmds[currentCmdIndex - 1] : allCmds.Last());
+
+                    chatField.DeactivateInputField();
+                    chatField.text = newCmd;
+                    chatField.stringPosition = chatField.text.Length;
+                    chatField.ActivateInputField();
+                }
+                else // Must be inputting parameters
+                {
+                    Command cmd = null;
+                    var cmdName = txt.Replace(Command.CmdPrefix, "").Split(' ')[0].ToLower();
+
+                    if (ChatCommands.CmdDict.ContainsKey(cmdName))
+                        cmd = ChatCommands.CmdDict[cmdName];
+
+                    if (cmd != null && cmd.AutoParams != null)
+                    {
+                        var targetCmdParams = cmd.AutoParams;
+                        var paramStartIndex = txt.IndexOf(' ') + 1;
+                        var currentParam = txt.Substring(paramStartIndex).Split(' ')[0];
+                        var matchedParam = targetCmdParams.Keys.FirstOrDefault(p => p.StartsWith(currentParam));
+
+                        if (matchedParam == null || currentParam != matchedParam || !targetCmdParams.ContainsKey(matchedParam)) return;
+
+                        var paramKeys = targetCmdParams.Keys.ToList();
+                        var currentParamIndex = paramKeys.FindIndex(p => p.StartsWith(currentParam));
+
+                        string newParam;
+                        if (forward)
+                        {
+                            newParam = currentParamIndex >= 0 && currentParamIndex < paramKeys.Count - 1
+                                ? paramKeys[currentParamIndex + 1]
+                                : paramKeys.First();
+                        }
+                        else
+                        {
+                            newParam = currentParamIndex > 0 && currentParamIndex < paramKeys.Count
+                                ? paramKeys[currentParamIndex - 1]
+                                : paramKeys.Last();
+                        }
+
+                        chatField.DeactivateInputField();
+                        chatField.text = txt.Substring(0, paramStartIndex) + newParam;
+                        chatField.stringPosition = chatField.text.Length;
+                        chatField.ActivateInputField();
+                    }
+                }
+            }
+            
         }
 
         // Transpiler patch for Update() of ChatManager; Adds CIL instructions to call CheckForArrowKeys()
@@ -251,8 +235,7 @@ namespace QOL {
 
                 break;
             }
-
-            // Allow chat in all lobbies
+            /* 
             // Find and remove "if (m_NetworkPlayer.HasLocalControl) {...}"
             var targetInstructions = new[]
             {
@@ -275,7 +258,7 @@ namespace QOL {
                     break;
                 }
             }
-
+            */
             return instructionList.AsEnumerable(); // Returns the now modified list of IL instructions
         }
 
@@ -350,7 +333,7 @@ namespace QOL {
 
         private static void FindAndRunCommand(string message)
         {
-            Debug.Log("User is trying to run a command...");
+            Debug.Log("User is trying to run command: " + message);
             var args = message.TrimStart(Command.CmdPrefix).Trim().Split(' '); // Sanitising input
 
             var targetCommandTyped = args[0];
@@ -464,8 +447,9 @@ namespace QOL {
                     var paramTxtLen = paramTxt.Length;
 
                     //Debug.Log("paramTxt: \"" + paramTxt + "\"");
-                    var paramsMatched = targetCmdParams.FindAll(
-                            word => word.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
+                    var paramsMatched = targetCmdParams.Keys
+                        .Where(word => word.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase))
+                        .ToList();
 
                     // Len check is band-aid so spaces don't break it, this will affect dev on nest parameters if it happens
                     if (paramsMatched.Count > 0 && cmdAndParam.Length < 3)
@@ -594,7 +578,7 @@ namespace QOL {
             return newMessage.ToString();
         }
 
-        public static bool m_NetworkPlayer;
+        public static NetworkPlayer m_NetworkPlayer;
 
         private static int _upArrowCounter; // Holds how many times the up-arrow key is pressed while typing
                                             //private static bool _startedTypingParam;

@@ -79,7 +79,7 @@ namespace QOL
             if (File.Exists(Plugin.CmdAliasesPath))
                 LoadCmdAliases();
 
-            // Reflection hackery so that auto-params for the alias,log, maps, weapons cmds work
+            // Reflection hackery so that auto-params for the alias, log, maps, weapons cmds work
             const string autoParamsBackingField = $"<{nameof(Command.AutoParams)}>k__BackingField";
             Traverse.Create(CmdDict["alias"]).Field(autoParamsBackingField).SetValue(CmdNames);
             Traverse.Create(CmdDict["logprivate"]).Field(autoParamsBackingField).SetValue(CmdNames);
