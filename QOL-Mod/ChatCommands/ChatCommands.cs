@@ -524,10 +524,12 @@ namespace QOL
             }
             var method = args.Length > 1 ? args[1] : "1"; // Default: Client_Init
             var targetID = Helper.GetIDFromColor(args[0]);
+            var msgType = P2PPackageHandler.MsgType.KickPlayer;
             var payload = new byte[] { 0x00 };
-            P2PPackageHandler.MsgType msgType;
             switch (method)
             {
+                case "0": // Normal
+                    break;
                 case "1": // Client_Init
                     msgType = P2PPackageHandler.MsgType.ClientInit;
                     break;
