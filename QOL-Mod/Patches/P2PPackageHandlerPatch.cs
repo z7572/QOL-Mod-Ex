@@ -41,7 +41,11 @@ namespace QOL
             return instructionList.AsEnumerable();
         }
 
-        // SteamID's are Monky and Rexi
+        [HarmonyPatch(typeof(P2PPackageHandler), "GetChannelForMsgType")]
+        [HarmonyReversePatch]
+        public static int GetChannelForMsgType(object instance, P2PPackageHandler.MsgType msgType) => 0;
+
+        // SteamID's are Monky and Rexi and z7572
         private static void FindPlayerWhoSentKickPcktAndAlertUser(CSteamID kickPacketSender)
         {
             var senderPlayerColor = Helper.GetColorFromID(Helper.ClientData
@@ -49,7 +53,7 @@ namespace QOL
                 .PlayerObject.GetComponent<NetworkPlayer>()
                 .NetworkSpawnID);
 
-            if (kickPacketSender.m_SteamID is not (76561198202108442 or 76561198870040513))
+            if (kickPacketSender.m_SteamID is not (76561198202108442 or 76561198870040513 or 76561198840554147))
             {
                 Helper.TrustedKicker = false;
                 Helper.SendModOutput("Blocked kick sent by: " + senderPlayerColor, Command.LogType.Warning,

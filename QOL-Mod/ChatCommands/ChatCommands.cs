@@ -24,7 +24,12 @@ namespace QOL
             new Command("config", ConfigCmd, 1, true, ConfigHandler.GetConfigKeys().ToList()),
             new Command("deathmsg", DeathMsgCmd, 0, false).MarkAsToggle(),
             new Command("dm", DmCmd, 1, false, PlayerUtils.PlayerColorsParams),
-            new Command("execute", ExecuteCmd, 1, true, new List<string> { "all" }.Union(PlayerUtils.PlayerColorsParams).ToList()),
+            new Command("execute", ExecuteCmd, 1, true,
+                new Dictionary<string, object>
+                {
+                    { "as", PlayerUtils.PlayerColorsParams },
+                    { "run", CmdNames },
+                }), // Actually only work as List<string> {"as", "run"}
             new Command("fov", FovCmd, 1, true),
             new Command("fps", FpsCmd, 1, true),
             new Command("friend", FriendCmd, 1, true, PlayerUtils.PlayerColorsParams),
@@ -34,6 +39,8 @@ namespace QOL
             new Command("hp", HpCmd, 0, false, PlayerUtils.PlayerColorsParams).SetAlwaysPublic(),
             new Command("id", IdCmd, 1, true, PlayerUtils.PlayerColorsParams),
             new Command("invite", InviteCmd, 0, true),
+            new Command("kick", KickCmd, 1, true, PlayerUtils.PlayerColorsParams),
+            new Command("kill", KillCmd, 0, false, PlayerUtils.PlayerColorsParams),
             new Command("lobhp", LobHpCmd, 0, false).SetAlwaysPublic(),
             new Command("lobregen", LobRegenCmd, 0, false).SetAlwaysPublic(),
             new Command("logprivate", LogPrivateCmd, 1, true, CmdNames),
@@ -50,6 +57,7 @@ namespace QOL
             new Command("public", PublicCmd, 0, true),
             new Command("rainbow", RainbowCmd, 0, true).MarkAsToggle(),
             new Command("resolution", ResolutionCmd, 2, true),
+            new Command("revive", ReviveCmd, 0, true),
             new Command("rich", RichCmd, 0, true).MarkAsToggle(),
             new Command("shrug", ShrugCmd, 0, false).SetAlwaysPublic(),
             new Command("stat", StatCmd, 1, true),
@@ -506,6 +514,64 @@ namespace QOL
             cmd.SetOutputMsg("Join link copied to clipboard!");
         }
 
+        private static void KickCmd(string[] args, Command cmd)
+        {
+            if (args.Length < 1)
+            {
+                cmd.SetOutputMsg("Must select a player!");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
+            var method = args.Length > 1 ? args[1] : "1"; // Default: Client_Init
+            var targetID = Helper.GetIDFromColor(args[0]);
+            var payload = new byte[] { 0x00 };
+            P2PPackageHandler.MsgType msgType;
+            switch (method)
+            {
+                case "1": // Client_Init
+                    msgType = P2PPackageHandler.MsgType.ClientInit;
+                    break;
+                case "2": // Workshop_Corruption_Kick
+                    msgType = P2PPackageHandler.MsgType.WorkshopMapsLoaded;
+                    payload = new byte[] { 0x01, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+                    break;
+                case "3": // Workshop_Crash
+                    msgType = P2PPackageHandler.MsgType.WorkshopMapsLoaded;
+                    payload = new byte[524282 /* 0xFFFF * 8 + 2 */];
+                    new System.Random().NextBytes(payload);
+                    payload[0] = 0xFF;
+                    payload[1] = 0xFF;
+                    break;
+                default:
+                    cmd.SetLogType(Command.LogType.Warning);
+                    cmd.SetOutputMsg("Invalid method! 1:Client_Init 2:Workshop_Corruption_Kick 3:Workshop_Crash");
+                    return;
+            }
+            P2PPackageHandler.Instance.SendP2PPacketToUser(Helper.GetSteamID(targetID), payload, msgType,
+            channel: P2PPackageHandlerPatch.GetChannelForMsgType(P2PPackageHandler.Instance, msgType));
+            cmd.SetOutputMsg("Kicked player " + Helper.GetColorFromID(targetID));
+        }
+
+        private static void KillCmd(string[] args, Command cmd)
+        {
+            if (args.Length == 0)
+            {
+                SuicideCmd(args, cmd);
+                return;
+            }
+            var targetID = Helper.GetIDFromColor(args[0]);
+            if (!PlayerUtils.IsPlayerInLobby(targetID))
+            {
+                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
+            var player = Helper.ClientData[targetID].PlayerObject.GetComponent<NetworkPlayer>();
+
+            player.UnitWasDamaged(0, true);
+            cmd.SetOutputMsg("Killed player " + Helper.GetColorFromID(targetID));
+        }
+
         // Outputs the HP setting for the lobby to chat
         private static void LobHpCmd(string[] args, Command cmd)
             => cmd.SetOutputMsg("Lobby HP: " + OptionsHolder.HP);
@@ -827,6 +893,15 @@ namespace QOL
 
             Screen.SetResolution(width, height, Convert.ToBoolean(OptionsHolder.fullscreen));
             cmd.SetOutputMsg("Set new resolution of: " + width + "x" + height);
+        }
+
+        public static void ReviveCmd(string[] args, Command cmd)
+        {
+            var reviveMethod = AccessTools.Method(typeof(GameManager), "RevivePlayer");
+            var target = Helper.localNetworkPlayer.gameObject.GetComponent<Controller>();
+            reviveMethod.Invoke(GameManager.Instance, new object[] { target, false });
+
+            cmd.SetOutputMsg("Me alive <:");
         }
 
         // Enables/disables rich text for chat messages
