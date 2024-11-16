@@ -24,12 +24,14 @@ namespace QOL
             new Command("config", ConfigCmd, 1, true, ConfigHandler.GetConfigKeys().ToList()),
             new Command("deathmsg", DeathMsgCmd, 0, false).MarkAsToggle(),
             new Command("dm", DmCmd, 1, false, PlayerUtils.PlayerColorsParams),
-            new Command("execute", ExecuteCmd, 1, true,
-                new Dictionary<string, object>
+            new Command("execute", ExecuteCmd, 2, true, PlayerUtils.PlayerColorsParams),
+                /* TODO: Implement multiple auto-completion
+                new List<List<string>>
                 {
-                    { "as", PlayerUtils.PlayerColorsParams },
-                    { "run", CmdNames },
-                }), // Actually only work as List<string> {"as", "run"}
+                    PlayerUtils.PlayerColorsParams,
+                    CmdNames,
+                    new List<string> { } // Parameters of the command
+                }),*/
             new Command("fov", FovCmd, 1, true),
             new Command("fps", FpsCmd, 1, true),
             new Command("friend", FriendCmd, 1, true, PlayerUtils.PlayerColorsParams),
@@ -61,13 +63,13 @@ namespace QOL
             new Command("rich", RichCmd, 0, true).MarkAsToggle(),
             new Command("shrug", ShrugCmd, 0, false).SetAlwaysPublic(),
             new Command("stat", StatCmd, 1, true),
-            new Command("sudo", SudoCmd, 2, true, new List<string> { "all" }.Union(PlayerUtils.PlayerColorsParams).ToList()),
+            new Command("sudo", SudoCmd, 2, true, PlayerUtils.PlayerColorsParamsWithAll),
             new Command("suicide", SuicideCmd, 0, false),
             new Command("translate", TranslateCmd, 0, true).MarkAsToggle(),
             new Command("uncensor", UncensorCmd, 0, true).MarkAsToggle(),
             new Command("uwu", UwuCmd, 0, true).MarkAsToggle(),
             new Command("ver", VerCmd, 0, true),
-            new Command("win", WinCmd, 0, true, PlayerUtils.PlayerColorsParams),
+            new Command("win", WinCmd, 2, true, PlayerUtils.PlayerColorsParams),
             new Command("weapons", WeaponsCmd, 1, true, GunPresetHandler.GunPresetNames),
             new Command("winnerhp", WinnerHpCmd, 0, false).MarkAsToggle(),
             new Command("winstreak", WinstreakCmd, 0, true).MarkAsToggle()
@@ -334,22 +336,31 @@ namespace QOL
         // Execute commands as specified player
         private static void ExecuteCmd(string[] args, Command cmd)
         {
-            var colorWanted = args[0] != "all" ? Helper.GetIDFromColor(args[0]) : ushort.MaxValue;
-            var txt = string.Join(" ", args, 2, args.Length - 1);
-            var bytes = Encoding.UTF8.GetBytes(txt);
-            if (colorWanted != ushort.MaxValue)
+            var targetID = Helper.GetIDFromColor(args[0]);
+            var targetCommand = args[1].TrimStart(Command.CmdPrefix).ToLower();
+            var argsToExecute = args.Skip(2).ToArray(); // Skip first 2 args (player, command)
+            if (!PlayerUtils.IsPlayerInLobby(targetID))
             {
-                var channel = colorWanted switch
-                {
-                    0 => 3, // Yellow
-                    1 => 5, // Red
-                    2 => 7, // Green
-                    3 => 9, // Blue
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-                GameManager.Instance.mMultiplayerManager.OnPlayerTalked(bytes, channel, colorWanted);
+                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
+                cmd.SetLogType(Command.LogType.Warning);
                 return;
             }
+            Helper.localNetworkPlayer = Helper.GetNetworkPlayer(targetID);
+
+            if (targetCommand == "say")
+            {
+                var argsToSay = new[] { args[0] }.Concat(args.Skip(2)).ToArray(); // (player, args)
+                SudoCmd(argsToSay, cmd);
+                return;
+            }
+            if (!CmdDict.ContainsKey(targetCommand))
+            {
+                cmd.SetOutputMsg("Specified command or it's alias not found. See /help for full list of commands.");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
+            CmdDict[targetCommand].Execute(argsToExecute);
+            Helper.localNetworkPlayer = default;
         }
 
         private static void FovCmd(string[] args, Command cmd) // TODO: Do tryparse instead to provide better error handling
@@ -526,6 +537,12 @@ namespace QOL
             var targetID = Helper.GetIDFromColor(args[0]);
             var msgType = P2PPackageHandler.MsgType.KickPlayer;
             var payload = new byte[] { 0x00 };
+            if (!PlayerUtils.IsPlayerInLobby(targetID))
+            {
+                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
             switch (method)
             {
                 case "0": // Normal
@@ -568,9 +585,7 @@ namespace QOL
                 cmd.SetLogType(Command.LogType.Warning);
                 return;
             }
-            var player = Helper.ClientData[targetID].PlayerObject.GetComponent<NetworkPlayer>();
-
-            player.UnitWasDamaged(0, true);
+            Helper.GetNetworkPlayer(targetID).UnitWasDamaged(0, true);
             cmd.SetOutputMsg("Killed player " + Helper.GetColorFromID(targetID));
         }
 
@@ -964,12 +979,14 @@ namespace QOL
                              Helper.GetTargetStatValue(targetStats, targetPlayerStat));
         }
 
-        // Speak as specified player
+        // Say as specified player
         private static void SudoCmd(string[] args, Command cmd)
         {
             var colorWanted = args[0] != "all" ? Helper.GetIDFromColor(args[0]) : ushort.MaxValue;
-            var txt = string.Join(" ", args, 2, args.Length - 1);
+            var txt = string.Join(" ", args, 1, args.Length - 1);
             var bytes = Encoding.UTF8.GetBytes(txt);
+            var syncClientChatMethod = AccessTools.Method(typeof(NetworkPlayer), "SyncClientChat");
+
             if (colorWanted != ushort.MaxValue)
             {
                 var channel = colorWanted switch
@@ -981,7 +998,21 @@ namespace QOL
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 GameManager.Instance.mMultiplayerManager.OnPlayerTalked(bytes, channel, colorWanted);
+                syncClientChatMethod.Invoke(Helper.GetNetworkPlayer(colorWanted), new object[] { bytes });
                 return;
+            }
+            else
+            {
+                foreach (var color in new ushort[] { 0, 1, 2, 3 })
+                {
+                    var channel = (color + 1) * 2 + 1;
+                    try
+                    {
+                        GameManager.Instance.mMultiplayerManager.OnPlayerTalked(bytes, channel, color);
+                        syncClientChatMethod.Invoke(Helper.GetNetworkPlayer(color), new object[] { bytes });
+                    }
+                    catch (Exception) { continue; }
+                }
             }
         }
 
@@ -1022,11 +1053,6 @@ namespace QOL
         // Set the selected player win and switch to selected map
         private static void WinCmd(string[] args, Command cmd)
         {
-            if (args.Length < 2)
-            {
-                cmd.SetLogType(Command.LogType.Warning);
-                cmd.SetOutputMsg("Need 2 arguments!");
-            }
             var mapIndex = int.Parse(args[1]);
             mapIndex = mapIndex == -1 ? Random.Range(1, 125) : mapIndex;
             var sendPacketToAllMethod = AccessTools.Method(typeof(MultiplayerManager), "SendMessageToAllClients");

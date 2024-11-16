@@ -50,16 +50,19 @@ namespace QOL
         // Assigns some commonly accessed values as well as runs anything that needs to be everytime a lobby is joined
         public static void InitValues(ChatManager __instance, ushort playerID)
         {
-            if (playerID != GameManager.Instance.mMultiplayerManager.LocalPlayerIndex) return;
-
-            foreach (var filePath in Directory.GetFiles(Plugin.MusicPath))
+            if (!MatchmakingHandler.IsNetworkMatch)
             {
-                var acceptableFileExtension = filePath.Substring(filePath.Length - 4); // .OGG or .WAV, both are 4 char
+                foreach (var filePath in Directory.GetFiles(Plugin.MusicPath))
+                {
+                    var acceptableFileExtension = filePath.Substring(filePath.Length - 4); // .OGG or .WAV, both are 4 char
 
-                if (acceptableFileExtension is ".ogg" or ".wav")
-                    __instance.StartCoroutine(ImportWav(filePath, CreateSongAndAddToMusic));
-                    
+                    if (acceptableFileExtension is ".ogg" or ".wav")
+                        __instance.StartCoroutine(ImportWav(filePath, CreateSongAndAddToMusic));
+
+                }
             }
+
+            if (playerID != GameManager.Instance.mMultiplayerManager.LocalPlayerIndex) return;
 
             ClientData = GameManager.Instance.mMultiplayerManager.ConnectedClients;
             MutedPlayers.Clear();

@@ -6,6 +6,8 @@ namespace QOL {
     {
         public static readonly List<string> PlayerColorsParams = new() { "y", "yellow", "b", "blue", "r", "red", "g", "green" };
 
+        public static readonly List<string> PlayerColorsParamsWithAll = new() { "all", "y", "yellow", "b", "blue", "r", "red", "g", "green" };
+
         public static bool IsPlayerInLobby(int targetID)
         {
             var connectedClients = GameManager.Instance.mMultiplayerManager.ConnectedClients;

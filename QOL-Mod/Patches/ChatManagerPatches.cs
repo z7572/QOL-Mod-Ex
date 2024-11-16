@@ -166,19 +166,48 @@ namespace QOL {
                     if (ChatCommands.CmdDict.ContainsKey(cmdName))
                         cmd = ChatCommands.CmdDict[cmdName];
 
-                    if (cmd != null && cmd.AutoParams != null)
+                    if (cmd == null || cmd.AutoParams == null) return;
+
+                    var paramStartIndex = txt.IndexOf(' ') + 1;
+                    var currentParam = txt.Substring(paramStartIndex).Split(' ')[0];
+                    var newParam = "";
+
+                    if (cmd.AutoParams is List<string> targetCmdParams)
                     {
-                        var targetCmdParams = cmd.AutoParams;
-                        var paramStartIndex = txt.IndexOf(' ') + 1;
-                        var currentParam = txt.Substring(paramStartIndex).Split(' ')[0];
-                        var matchedParam = targetCmdParams.Keys.FirstOrDefault(p => p.StartsWith(currentParam));
+                        paramStartIndex = txt.IndexOf(' ') + 1;
+                        currentParam = txt.Substring(paramStartIndex).Split(' ')[0];
+                        var matchedParam = targetCmdParams.FirstOrDefault(p => p.StartsWith(currentParam));
 
-                        if (matchedParam == null || currentParam != matchedParam || !targetCmdParams.ContainsKey(matchedParam)) return;
+                        if (matchedParam == null || currentParam != matchedParam || !targetCmdParams.Contains(matchedParam)) return;
 
-                        var paramKeys = targetCmdParams.Keys.ToList();
+                        var currentParamIndex = targetCmdParams.FindIndex(p => p.StartsWith(currentParam));
+
+                        if (forward)
+                        {
+                            newParam = currentParamIndex >= 0 && currentParamIndex < targetCmdParams.Count - 1
+                                ? targetCmdParams[currentParamIndex + 1]
+                                : targetCmdParams.First();
+                        }
+                        else
+                        {
+                            newParam = currentParamIndex > 0 && currentParamIndex < targetCmdParams.Count
+                                ? targetCmdParams[currentParamIndex - 1]
+                                : targetCmdParams.Last();
+                        }
+                    }
+                    else if (cmd.AutoParams is List<List<string>> targetCmdParamsByIndex)
+                    {
+                        // TODO
+                    }
+                    else if (cmd.AutoParams is Dictionary<string, object> targetCmdParamsByName)
+                    { // TODO: Support Dictionary values
+                        var matchedParam = targetCmdParamsByName.Keys.FirstOrDefault(p => p.StartsWith(currentParam));
+
+                        if (matchedParam == null || currentParam != matchedParam || !targetCmdParamsByName.ContainsKey(matchedParam)) return;
+
+                        var paramKeys = targetCmdParamsByName.Keys.ToList();
                         var currentParamIndex = paramKeys.FindIndex(p => p.StartsWith(currentParam));
 
-                        string newParam;
                         if (forward)
                         {
                             newParam = currentParamIndex >= 0 && currentParamIndex < paramKeys.Count - 1
@@ -191,12 +220,13 @@ namespace QOL {
                                 ? paramKeys[currentParamIndex - 1]
                                 : paramKeys.Last();
                         }
-
-                        chatField.DeactivateInputField();
-                        chatField.text = txt.Substring(0, paramStartIndex) + newParam;
-                        chatField.stringPosition = chatField.text.Length;
-                        chatField.ActivateInputField();
                     }
+
+                    chatField.DeactivateInputField();
+                    chatField.text = txt.Substring(0, paramStartIndex) + newParam;
+                    chatField.stringPosition = chatField.text.Length;
+                    chatField.ActivateInputField();
+
                 }
             }
             
@@ -235,30 +265,7 @@ namespace QOL {
 
                 break;
             }
-            /* 
-            // Find and remove "if (m_NetworkPlayer.HasLocalControl) {...}"
-            var targetInstructions = new[]
-            {
-                new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(ChatManager), "m_NetworkPlayer")),
-                new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(NetworkPlayer), "get_HasLocalControl")),
-                new CodeInstruction(OpCodes.Brfalse)
-            };
             
-            for (var i = 0; i < instructionList.Count - 4; i++)
-            {
-                if (instructionList[i].opcode == targetInstructions[0].opcode &&
-                    instructionList[i + 1].opcode == targetInstructions[1].opcode &&
-                    instructionList[i + 1].operand == targetInstructions[1].operand &&
-                    instructionList[i + 2].opcode == targetInstructions[2].opcode &&
-                    instructionList[i + 2].operand == targetInstructions[2].operand &&
-                    instructionList[i + 3].opcode == targetInstructions[3].opcode)
-                {
-                    instructionList.RemoveRange(i, 4);
-                    break;
-                }
-            }
-            */
             return instructionList.AsEnumerable(); // Returns the now modified list of IL instructions
         }
 
@@ -443,55 +450,153 @@ namespace QOL {
                     if (cmdAndParam.Length <= 1 || cmdAndParam[0].Length != cmdMatch.Length) return;
 
                     // Focusing on auto-completing the parameter now
-                    var paramTxt = cmdAndParam![1].Replace(" ", "");
+                    var paramTxt = cmdAndParam[1].Replace(" ", "");
                     var paramTxtLen = paramTxt.Length;
 
-                    //Debug.Log("paramTxt: \"" + paramTxt + "\"");
-                    var paramsMatched = targetCmdParams.Keys
-                        .Where(word => word.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase))
-                        .ToList();
+                    // TODO: Implement auto-completing multiple parameters
+                    var currentParamIndex = cmdAndParam.Length - 1;
 
-                    // Len check is band-aid so spaces don't break it, this will affect dev on nest parameters if it happens
-                    if (paramsMatched.Count > 0 && cmdAndParam.Length < 3)
+                    if (targetCmdParams is List<string> simpleAutoParams)
                     {
-                        var paramMatch = paramsMatched[0];
-                        var paramMatchLen = paramMatch.Length;
+                        //Debug.Log("paramTxt: \"" + paramTxt + "\"");
+                        var paramsMatched = simpleAutoParams.FindAll(
+                        word => word.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
 
-                        if (paramTxtLen == paramMatchLen)
+
+                        // Len check is band-aid so spaces don't break it, this will affect dev on nest parameters if it happens
+                        if (paramsMatched.Count > 0 && cmdAndParam.Length < 3)
                         {
-                            var paramRichTxtStartPos = paramTxt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
-                            if (paramRichTxtStartPos != -1 && paramTxt.Substring(0, paramRichTxtStartPos) == paramMatch)
+                            var paramMatch = paramsMatched[0];
+                            var paramMatchLen = paramMatch.Length;
+
+                            if (paramTxtLen == paramMatchLen)
                             {
-                                chatField.text = chatField.text.Remove(txtLen - paramMatchLen - rTxtFmt.Length + 1, 14);
+                                var paramRichTxtStartPos = paramTxt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
+                                if (paramRichTxtStartPos != -1 && paramTxt.Substring(0, paramRichTxtStartPos) == paramMatch)
+                                {
+                                    chatField.text = chatField.text.Remove(txtLen - paramMatchLen - rTxtFmt.Length + 1, 14);
+                                    return;
+                                }
+
+                                if (Input.GetKeyDown(KeyCode.Tab))
+                                {   // Auto-completes the suggested parameter. Input field is made immutable so str pos is set correctly
+                                    chatField.DeactivateInputField();
+
+                                    if (ReferenceEquals(simpleAutoParams, PlayerUtils.PlayerColorsParams))
+                                    {   // Change player color to 1 letter variant to encourage shorthand alternative
+                                        // Multiply by 2 to get correct shorthand index for color
+                                        var colorIndex = Helper.GetIDFromColor(paramMatch) * 2;
+                                        paramMatch = PlayerUtils.PlayerColorsParams[colorIndex];
+                                    }
+
+                                    // string.Remove() so we don't rely on the update loop to remove the rich txt leftovers
+                                    if (txtLen - paramMatchLen - rTxtFmt.Length > 0) // Actually fixs the bug: the second switch don't work
+                                    {
+                                        chatField.text = txt.Remove(txtLen - paramMatchLen - rTxtFmt.Length) + paramMatch;
+                                    }
+                                    chatField.stringPosition = chatField.text.Length;
+                                    chatField.ActivateInputField();
+                                }
+
                                 return;
                             }
 
-                            if (Input.GetKeyDown(KeyCode.Tab))
-                            {   // Auto-completes the suggested parameter. Input field is made immutable so str pos is set correctly
-                                chatField.DeactivateInputField();
+                            chatField.text += rTxtFmt + paramMatch.Substring(paramTxtLen);
+                            chatField.richText = true;
+                        }
+                        
+                    }
 
-                                if (ReferenceEquals(targetCmdParams, PlayerUtils.PlayerColorsParams))
-                                {   // Change player color to 1 letter variant to encourage shorthand alternative
-                                    // Multiply by 2 to get correct shorthand index for color
-                                    var colorIndex = Helper.GetIDFromColor(paramMatch) * 2;
-                                    paramMatch = PlayerUtils.PlayerColorsParams[colorIndex];
-                                }
+                    //TODO: Implement auto-completing multiple parameters
+                    else if (targetCmdParams is List<List<string>> AutoParamsByIndex)
+                    {
+                        if (currentParamIndex < AutoParamsByIndex.Count)
+                        {
+                            var currentParamList = AutoParamsByIndex[currentParamIndex];
+                            var paramsMatched = currentParamList.Where(param => param.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase)).ToList();
 
-                                // string.Remove() so we don't rely on the update loop to remove the rich txt leftovers
-                                if (txtLen - paramMatchLen - rTxtFmt.Length > 0) // Actually fixs the bug: the second switch don't work
+                            if (paramsMatched.Count > 0 && cmdAndParam.Length < 3)
+                            {
+                                var paramMatch = paramsMatched[0];
+                                var paramMatchLen = paramMatch.Length;
+
+                                if (paramTxtLen == paramMatchLen)
                                 {
-                                    chatField.text = txt.Remove(txtLen - paramMatchLen - rTxtFmt.Length) + paramMatch; 
+                                    chatField.DeactivateInputField();
+                                    chatField.text = txt.Remove(txtLen - paramMatchLen - rTxtFmt.Length) + paramMatch;
+                                    chatField.stringPosition = chatField.text.Length;
+                                    chatField.ActivateInputField();
                                 }
-                                chatField.stringPosition = chatField.text.Length;
-                                chatField.ActivateInputField();
+                                else
+                                {
+                                    chatField.text += rTxtFmt + paramMatch.Substring(paramTxtLen);
+                                    chatField.richText = true;
+                                }
+                            }
+                        }
+                    }
+                    else if (targetCmdParams is Dictionary<string, object> AutoParamsByName)
+                    {
+                        if (cmdAndParam.Length > 1)
+                        {
+                            currentParamIndex = cmdAndParam.Length - 2;
+                            var currentParamText = cmdAndParam[currentParamIndex + 1].ToLower();
+
+                            object currentParamLevel = AutoParamsByName;
+
+                            for (int i = 1; i <= currentParamIndex; i++)
+                            {
+                                var previousParam = cmdAndParam[i].ToLower();
+                                if (currentParamLevel is Dictionary<string, object> nestedParams && nestedParams.ContainsKey(previousParam))
+                                {
+                                    currentParamLevel = nestedParams[previousParam];
+                                }
+                                else
+                                {
+                                    currentParamLevel = null;
+                                    break;
+                                }
                             }
 
-                            return;
-                        }
+                            if (currentParamLevel is List<string> nextParams)
+                            {
+                                var paramsMatched = nextParams
+                                    .Where(param => param.StartsWith(currentParamText, StringComparison.InvariantCultureIgnoreCase))
+                                    .ToList();
 
-                        chatField.text += rTxtFmt + paramMatch.Substring(paramTxtLen);
-                        chatField.richText = true;
+                                if (paramsMatched.Count > 0)
+                                {
+                                    var paramMatch = paramsMatched[0];
+                                    var paramMatchLen = paramMatch.Length;
+
+                                    if (currentParamText.Length == paramMatchLen)
+                                    {
+                                        var paramRichTxtStartPos = currentParamText.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
+                                        if (paramRichTxtStartPos != -1 && currentParamText.Substring(0, paramRichTxtStartPos) == paramMatch)
+                                        {
+                                            chatField.text = chatField.text.Remove(txtLen - paramMatchLen - rTxtFmt.Length + 1, 14);
+                                            return;
+                                        }
+
+                                        if (Input.GetKeyDown(KeyCode.Tab))
+                                        {
+                                            chatField.DeactivateInputField();
+                                            chatField.text = txt.Remove(txtLen - currentParamText.Length) + paramMatch;
+                                            chatField.stringPosition = chatField.text.Length;
+                                            chatField.ActivateInputField();
+                                        }
+
+                                        return;
+                                    }
+
+                                    chatField.text += rTxtFmt + paramMatch.Substring(currentParamText.Length);
+                                    chatField.richText = true;
+                                }
+                            }
+
+                        }
                     }
+
                     else if (chatField.richText) // TODO: Implement support for rich text as argument input
                     {
                         var effectStartPos = txt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
@@ -577,8 +682,6 @@ namespace QOL {
 
             return newMessage.ToString();
         }
-
-        public static NetworkPlayer m_NetworkPlayer;
 
         private static int _upArrowCounter; // Holds how many times the up-arrow key is pressed while typing
                                             //private static bool _startedTypingParam;

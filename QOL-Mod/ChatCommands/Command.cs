@@ -26,7 +26,7 @@ namespace QOL {
         public List<string> Aliases { get; } = new();
         // TODO: Implement auto-suggested parameters property
         //public List<string> AutoParams { get; }
-        public Dictionary<string, object> AutoParams { get; private set; }
+        public object AutoParams { get; private set; }
         public bool IsToggle { get; private set; }
         public bool IsEnabled { get; set; }
 
@@ -53,11 +53,17 @@ namespace QOL {
             // Compatible with old structure List<string> autocompletion
             if (autoParameters is List<string> simpleAutoParams)
             {
-                AutoParams = simpleAutoParams.ToDictionary(param => param, param => (object)null);
+                AutoParams = simpleAutoParams;
             }
-            else if (autoParameters is Dictionary<string, object> complexAutoParams)
+            else if (autoParameters is List<List<string>> AutoParamsByIndex)
             {
-                AutoParams = complexAutoParams;
+                AutoParams = AutoParamsByIndex;
+                    //.SelectMany((paramList, index) => paramList.Select(param => new KeyValuePair<string, int>(param, index)))
+                    //.ToDictionary(pair => pair.Key, pair => pair.Value); // Dictionary<string, int>: {param, index}
+            }
+            else if (autoParameters is Dictionary<string, object> AutoParamsByName)
+            {
+                AutoParams = AutoParamsByName;
             }
             else
             {
