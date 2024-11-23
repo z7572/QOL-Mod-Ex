@@ -18,9 +18,16 @@ namespace QOL {
             var awakeMethod = AccessTools.Method(typeof(GameManager), "Awake");
             var awakeMethodPostfix = new HarmonyMethod(typeof(GameManagerPatches).GetMethod(nameof(AwakeMethodPostfix))); // Patches NetworkAllPlayersDiedButOne() with postfix method
             harmonyInstance.Patch(awakeMethod, postfix: awakeMethodPostfix);
+
+            var startMethod = AccessTools.Method(typeof(GameManager), "Start");
+            var startMethodPostfix = new HarmonyMethod(typeof(GameManagerPatches).GetMethod(nameof(StartMethodPostfix)));
+            harmonyInstance.Patch(startMethod, postfix: startMethodPostfix);
         }
 
         public static void AwakeMethodPostfix() => Plugin.InitModText();
+
+        public static void StartMethodPostfix(GameManager __instance)
+            => __instance.gameObject.AddComponent<HotKeyManager>();
 
         public static void NetworkAllPlayersDiedButOnePostfix(ref byte winner, GameManager __instance)
         {
