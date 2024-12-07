@@ -47,20 +47,28 @@ namespace QOL
         // Actually sticks the "join game" link together (url prefix + appID + LobbyID + SteamID)
         public static string GetJoinGameLink() => $"steam://joinlobby/674940/{lobbyID}/{localPlayerSteamID}";
 
+        public static Controller GetLocalController()
+        {
+            if (controllerHandler != null && controllerHandler.ActivePlayers != null)
+            {
+                foreach (Controller controller in controllerHandler.ActivePlayers)
+                {
+                    if (controller.HasControl)
+                    {
+                        return controller;
+                    }
+                }
+            }
+            return null;
+        }
+
         // Assigns some commonly accessed values as well as runs anything that needs to be everytime a lobby is joined
         public static void InitValues(ChatManager __instance, ushort playerID)
         {
-            if (!MatchmakingHandler.IsNetworkMatch)
-            {
-                foreach (var filePath in Directory.GetFiles(Plugin.MusicPath))
-                {
-                    var acceptableFileExtension = filePath.Substring(filePath.Length - 4); // .OGG or .WAV, both are 4 char
-
-                    if (acceptableFileExtension is ".ogg" or ".wav")
-                        __instance.StartCoroutine(ImportWav(filePath, CreateSongAndAddToMusic));
-
-                }
-            }
+            controllerHandler = GameObject.Find("GameManagement").GetComponent<ControllerHandler>();
+            gameManager = GameObject.Find("GameManagement").GetComponent<GameManager>();
+            Fighting fighting = Utils.GetFieldValue<Fighting>(controller, "fighting");
+            localNetworkPlayer = Utils.GetFieldValue<NetworkPlayer>(fighting, "mNetworkPlayer");
 
             if (playerID != GameManager.Instance.mMultiplayerManager.LocalPlayerIndex) return;
 
@@ -68,7 +76,7 @@ namespace QOL
             MutedPlayers.Clear();
 
             var localID = GameManager.Instance.mMultiplayerManager.LocalPlayerIndex;
-            localNetworkPlayer = ClientData[localID].PlayerObject.GetComponent<NetworkPlayer>();
+            //localNetworkPlayer = ClientData[localID].PlayerObject.GetComponent<NetworkPlayer>();
             LocalChat = ClientData[localID].PlayerObject.GetComponentInChildren<ChatManager>();
 
             Debug.Log("Assigned the localNetworkPlayer!: " + localNetworkPlayer.NetworkSpawnID);
@@ -178,7 +186,34 @@ namespace QOL
             }
         }
 
-        // Adapted from: https://github.com/deadlyfingers/UnityWav#notes
+        public static void InitMusic(GameManager __instance)
+        {
+            //if (MatchmakingHandler.IsNetworkMatch) return;
+
+            var filePaths = Directory.GetFiles(Plugin.MusicPath)
+                .Where(filePath => filePath.EndsWith(".ogg") || filePath.EndsWith(".wav"))
+                .ToArray();
+
+            if (filePaths.Length == 0) return;
+
+            __instance.StartCoroutine(LoadMusicFilesAsync(filePaths, __instance));
+        }
+
+        public static IEnumerator LoadMusicFilesAsync(string[] filePaths, GameManager __instance)
+        {
+            List<IEnumerator> loadingCoroutines = new List<IEnumerator>();
+
+            foreach (var filePath in filePaths)
+            {
+                loadingCoroutines.Add(ImportWav(filePath, CreateSongAndAddToMusic));
+            }
+
+            foreach (var coroutine in loadingCoroutines)
+            {
+                yield return __instance.StartCoroutine(coroutine);
+            }
+        }
+
         public static IEnumerator ImportWav(string url, Action<AudioClip> callback)
         {
             url = "file:///" + url.Replace(" ", "%20");
@@ -244,6 +279,10 @@ namespace QOL
         public static bool IsVowel(char c) => (0x208222 >> (c & 0x1f) & 1) != 0;
 
         public static CSteamID lobbyID; // The ID of the current lobby
+
+        public static Controller controller => GetLocalController(); // The controller of the local user (ours)
+        public static ControllerHandler controllerHandler;
+        public static GameManager gameManager;
 
         public static readonly CSteamID localPlayerSteamID = SteamUser.GetSteamID(); // The steamID of the local user (ours)
         public static NetworkPlayer localNetworkPlayer; // The networkPlayer of the local user (ours)

@@ -123,37 +123,41 @@ namespace QOL {
                 }
             }
 
-            // Scroll mouse wheel to switch commands
+            // Switch command
             if (ChatManager.isTyping && _canSwitchCmd)
             {
-                if ((Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.Tab)) ||
-                    Input.GetAxis("Mouse ScrollWheel") < 0)
+                if (!Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.Tab))
                 {
                     _keyHoldTime += Time.deltaTime;
-                    if (Input.GetKeyDown(KeyCode.PageDown) || Input.GetKeyDown(KeyCode.Tab) ||
-                        _keyHoldTime > 0.5f)
+                    if (Input.GetKeyDown(KeyCode.Tab) || _keyHoldTime > 0.5f)
                     {
                         HandleCommandNavigation(forward: true);
                     }
                 }
-                else if (Input.GetKeyUp(KeyCode.PageDown) || Input.GetKeyUp(KeyCode.Tab))
+                else if (Input.GetKeyUp(KeyCode.Tab))
                 {
                     _keyHoldTime = 0f;
                 }
+                if (Input.GetAxis("Mouse ScrollWheel") < 0)
+                {
+                    HandleCommandNavigation(true);
+                }
 
-                if ((!Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.Tab)) ||
-                    Input.GetAxis("Mouse ScrollWheel") > 0)
+                if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.Tab))
                 {
                     _keyHoldTime += Time.deltaTime;
-                    if (Input.GetKeyDown(KeyCode.PageUp) || Input.GetKeyDown(KeyCode.Tab) ||
-                        _keyHoldTime > 0.5f)
+                    if (Input.GetKeyDown(KeyCode.Tab) || _keyHoldTime > 0.5f)
                     {
                         HandleCommandNavigation(forward: false);
                     }
                 }
-                else if (Input.GetKeyUp(KeyCode.PageUp) || Input.GetKeyUp(KeyCode.Tab))
+                else if (Input.GetKeyUp(KeyCode.Tab))
                 {
                     _keyHoldTime = 0f;
+                }
+                if (Input.GetAxis("Mouse ScrollWheel") > 0)
+                {
+                    HandleCommandNavigation(false);
                 }
             }
 

@@ -27,7 +27,10 @@ namespace QOL {
         public static void AwakeMethodPostfix() => Plugin.InitModText();
 
         public static void StartMethodPostfix(GameManager __instance)
-            => __instance.gameObject.AddComponent<HotKeyManager>();
+        {
+            __instance.gameObject.AddComponent<HotKeyManager>();
+            Helper.InitMusic(__instance);
+        }
 
         public static void NetworkAllPlayersDiedButOnePostfix(ref byte winner, GameManager __instance)
         {
