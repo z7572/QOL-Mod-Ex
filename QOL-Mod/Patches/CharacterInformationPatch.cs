@@ -20,8 +20,8 @@ namespace QOL {
             var customPlayerColor = ConfigHandler.GetEntry<Color>("CustomColor");
             var isCustomPlayerColor = customPlayerColor != ConfigHandler.GetEntry<Color>("CustomColor", true);
 
-            var colorWanted = isCustomPlayerColor ? customPlayerColor : ConfigHandler.DefaultColors[0];
-            MultiplayerManagerPatches.ChangeAllCharacterColors(colorWanted, __instance.gameObject);
+            if (!isCustomPlayerColor) return;
+            MultiplayerManagerPatches.ChangeAllCharacterColors(customPlayerColor, __instance.gameObject);
         }
     }
 }

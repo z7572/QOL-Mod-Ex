@@ -61,13 +61,17 @@ namespace QOL {
         // TODO: Remove unneeded parameters and perhaps this entire method
         public static void StartMethodPostfix(ChatManager __instance)
         {
-            var playerID = Traverse.Create(__instance)
-                .Field("m_NetworkPlayer")
-                .GetValue<NetworkPlayer>()
-                .NetworkSpawnID;
+            var playerID = ushort.MaxValue;
 
-            // Assigns m_NetworkPlayer value to Helper.localNetworkPlayer if networkPlayer is ours
-            Helper.InitValues(__instance, playerID);
+            try
+            {
+                playerID = Traverse.Create(__instance).Field("m_NetworkPlayer").GetValue<NetworkPlayer>().NetworkSpawnID;
+            }
+            finally
+            {
+                // Assigns m_NetworkPlayer value to Helper.localNetworkPlayer if networkPlayer is ours
+                Helper.InitValues(__instance, playerID);
+            }
         }
 
         public static void UpdateMethodPostfix(ChatManager __instance)
@@ -75,7 +79,7 @@ namespace QOL {
             var chatFieldInfo = AccessTools.Field(typeof(ChatManager), "chatField");
             TMP_InputField chatField = (TMP_InputField)chatFieldInfo.GetValue(__instance);
 
-            // Enable inputting commands in local lobbies (will not show chat bubble, some of commands work)
+            // Enable inputting commands in local lobbies (will not show chat bubble, some commands work)
             if (!MatchmakingHandler.IsNetworkMatch)
             { // These are the same as in the original code
                 if (ChatManager.isTyping)
@@ -113,29 +117,44 @@ namespace QOL {
                 {
                     __instance.StartTyping();
                     chatField.DeactivateInputField();
-                    chatField.text = "/";
+                    chatField.text = Command.CmdPrefix.ToString();
                     chatField.stringPosition = chatField.text.Length;
                     chatField.ActivateInputField();
                 }
             }
 
             // Scroll mouse wheel to switch commands
-            // TODO: fix bug: cmd will skip current cmd (Press Tab will call CheckForArrowKeysAndAutoComplete())
-            if (ChatManager.isTyping &&
-                //(!Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab)) ||
-                Input.GetKeyDown(KeyCode.PageDown) ||
-                Input.GetAxis("Mouse ScrollWheel") < 0
-                )
+            if (ChatManager.isTyping && _canSwitchCmd)
             {
-                HandleCommandNavigation(forward: true);
-            }
-            else if (ChatManager.isTyping &&
-                //(Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Tab)) ||
-                Input.GetKeyDown(KeyCode.PageUp) ||
-                Input.GetAxis("Mouse ScrollWheel") > 0
-                )
-            {
-                HandleCommandNavigation(forward: false);
+                if ((Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.Tab)) ||
+                    Input.GetAxis("Mouse ScrollWheel") < 0)
+                {
+                    _keyHoldTime += Time.deltaTime;
+                    if (Input.GetKeyDown(KeyCode.PageDown) || Input.GetKeyDown(KeyCode.Tab) ||
+                        _keyHoldTime > 0.5f)
+                    {
+                        HandleCommandNavigation(forward: true);
+                    }
+                }
+                else if (Input.GetKeyUp(KeyCode.PageDown) || Input.GetKeyUp(KeyCode.Tab))
+                {
+                    _keyHoldTime = 0f;
+                }
+
+                if ((!Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.Tab)) ||
+                    Input.GetAxis("Mouse ScrollWheel") > 0)
+                {
+                    _keyHoldTime += Time.deltaTime;
+                    if (Input.GetKeyDown(KeyCode.PageUp) || Input.GetKeyDown(KeyCode.Tab) ||
+                        _keyHoldTime > 0.5f)
+                    {
+                        HandleCommandNavigation(forward: false);
+                    }
+                }
+                else if (Input.GetKeyUp(KeyCode.PageUp) || Input.GetKeyUp(KeyCode.Tab))
+                {
+                    _keyHoldTime = 0f;
+                }
             }
 
             void HandleCommandNavigation(bool forward)
@@ -418,6 +437,7 @@ namespace QOL {
                             chatField.text = cmdMatch;
                             chatField.stringPosition = chatField.text.Length;
                             chatField.ActivateInputField();
+                            _canSwitchCmd = txt == parsedTxt; // Prevent switching cmd when have rich text(to complete current cmd)
                         }
 
                         return;
@@ -496,6 +516,7 @@ namespace QOL {
                                     }
                                     chatField.stringPosition = chatField.text.Length;
                                     chatField.ActivateInputField();
+                                    _canSwitchCmd = txt == parsedTxt;
                                 }
 
                                 return;
@@ -504,10 +525,18 @@ namespace QOL {
                             chatField.text += rTxtFmt + paramMatch.Substring(paramTxtLen);
                             chatField.richText = true;
                         }
-                        
+                        else if (chatField.richText) // TODO: Implement support for rich text as argument input
+                        {
+                            var effectStartPos = txt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
+                            if (effectStartPos == -1) return;
+
+                            chatField.text = txt.Remove(effectStartPos);
+                        }
+
                     }
 
-                    //TODO: Implement auto-completing multiple parameters
+                    // TODO: Implement auto-completing multiple parameters
+                    // Below are not used
                     else if (targetCmdParams is List<List<string>> AutoParamsByIndex)
                     {
                         if (currentParamIndex < AutoParamsByIndex.Count)
@@ -596,14 +625,7 @@ namespace QOL {
 
                         }
                     }
-
-                    else if (chatField.richText) // TODO: Implement support for rich text as argument input
-                    {
-                        var effectStartPos = txt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
-                        if (effectStartPos == -1) return;
-
-                        chatField.text = txt.Remove(effectStartPos);
-                    }
+                    
                 }
             }
             else if (chatField.richText)
@@ -682,6 +704,10 @@ namespace QOL {
 
             return newMessage.ToString();
         }
+
+        private static bool _canSwitchCmd = true;
+
+        private static float _keyHoldTime = 0f;
 
         private static int _upArrowCounter; // Holds how many times the up-arrow key is pressed while typing
                                             //private static bool _startedTypingParam;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using UnityEngine;
+using HarmonyLib;
 using QOL;
 
 public class HotKeyManager : MonoBehaviour
@@ -25,51 +26,64 @@ public class HotKeyManager : MonoBehaviour
 
     private void Update()
     {
-        if (ChatManager.isTyping || controllerHandler == null) return;
-
-        foreach (Controller controller in controllerHandler.ActivePlayers)
+        // Switch weapon
+        if (!ChatManager.isTyping && controllerHandler != null)
         {
-            if (!controller.HasControl) continue;
-
-            var fighting = Utils.GetFieldValue<Fighting>(controller, "fighting");
-            if (fighting == null) continue;
-
-            if (Input.GetKey(prevWeaponKey))
+            foreach (Controller controller in controllerHandler.ActivePlayers)
             {
-                keyHoldTime += Time.deltaTime;
-                if (Input.GetKeyDown(prevWeaponKey) || keyHoldTime > HoldThreshold)
+                if (!controller.HasControl) continue;
+
+                var fighting = Utils.GetFieldValue<Fighting>(controller, "fighting");
+                if (fighting == null) continue;
+
+                if (Input.GetKey(prevWeaponKey))
                 {
-                    var weapon = Utils.GetFieldValue<Weapon>(fighting, "weapon");
-                    if (CurrentWeaponIndex != 0 && (weapon == null || string.IsNullOrEmpty(weapon.name)))
+                    keyHoldTime += Time.deltaTime;
+                    if (Input.GetKeyDown(prevWeaponKey) || keyHoldTime > HoldThreshold)
                     {
-                        SwitchWeapon(0, fighting); // Switch to current weapon if thrown
-                        return;
+                        if (fighting.CurrentWeaponIndex != 0)
+                        {
+                            CurrentWeaponIndex = fighting.CurrentWeaponIndex; // Update current weapon index(except for punch)
+                        }
+                        if (CurrentWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
+                        {
+                            SwitchWeapon(0, fighting); // Switch to thrown weapon
+                        }
+                        else
+                        {
+                            SwitchWeapon(-1, fighting);
+                        }
                     }
-                    SwitchWeapon(-1, fighting);
                 }
-            }
-            else if (Input.GetKeyUp(prevWeaponKey))
-            {
-                keyHoldTime = 0f;
-            }
-
-            if (Input.GetKey(nextWeaponKey))
-            {
-                keyHoldTime += Time.deltaTime;
-                if (Input.GetKeyDown(nextWeaponKey) || keyHoldTime > HoldThreshold)
+                else if (Input.GetKeyUp(prevWeaponKey))
                 {
-                    var weapon = Utils.GetFieldValue<Weapon>(fighting, "weapon");
-                    if (CurrentWeaponIndex != 0 && (weapon == null || string.IsNullOrEmpty(weapon.name)))
-                    {
-                        SwitchWeapon(0, fighting);
-                        return;
-                    }
-                    SwitchWeapon(1, fighting);
+                    keyHoldTime = 0f;
                 }
-            }
-            else if (Input.GetKeyUp(nextWeaponKey))
-            {
-                keyHoldTime = 0f;
+
+                if (Input.GetKey(nextWeaponKey))
+                {
+                    keyHoldTime += Time.deltaTime;
+                    if (Input.GetKeyDown(nextWeaponKey) || keyHoldTime > HoldThreshold)
+                    {
+                        if (fighting.CurrentWeaponIndex != 0)
+                        {
+                            CurrentWeaponIndex = fighting.CurrentWeaponIndex;
+                        }
+                        if (CurrentWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
+                        {
+                            SwitchWeapon(0, fighting);
+                        }
+                        else
+                        {
+                            SwitchWeapon(1, fighting);
+                        }
+                        CurrentWeaponIndex = fighting.CurrentWeaponIndex;
+                    }
+                }
+                else if (Input.GetKeyUp(nextWeaponKey))
+                {
+                    keyHoldTime = 0f;
+                }
             }
         }
     }
@@ -82,6 +96,7 @@ public class HotKeyManager : MonoBehaviour
         int weaponCount = weapons.childCount + 1; // +1 for the empty slot(punch)
 
         CurrentWeaponIndex += direction;
+
         if (CurrentWeaponIndex < 0)
         {
             CurrentWeaponIndex = weaponCount - 1;
