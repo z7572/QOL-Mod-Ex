@@ -59,8 +59,9 @@ namespace QOL {
 
             foreach (var hoard in Resources.FindObjectsOfTypeAll<HoardHandler>())
             {
-                if (hoard.name == "AI spawner (1)") Helper.Hoards[0] = hoard; // Bolt
-                if (hoard.name == "AI spawner (2)") Helper.Hoards[1] = hoard; // Zombie
+                if (hoard.name == "AI spawner") Helper.Hoards[0] = hoard; // Player
+                if (hoard.name == "AI spawner (1)") Helper.Hoards[1] = hoard; // Bolt
+                if (hoard.name == "AI spawner (2)") Helper.Hoards[2] = hoard; // Zombie
             }
 
             Debug.Log("Trying to find child objs!!");
@@ -115,6 +116,8 @@ namespace QOL {
                             ? ConfigHandler.DefaultColors[player.NetworkSpawnID]
                             : customPlayerColor,
                         character);
+
+                    Helper.CurrentWeaponIndex = 0;
                 }
             }
         }
@@ -167,6 +170,10 @@ namespace QOL {
 
         public static void ChangeAllCharacterColors(Color colorWanted, GameObject character)
         {
+            var customPlayerColor = ConfigHandler.GetEntry<Color>("CustomColor");
+            var isCustomPlayerColor = customPlayerColor != ConfigHandler.GetEntry<Color>("CustomColor", true);
+            if (!isCustomPlayerColor) return;
+
             var playerID = 0;
             if (MatchmakingHandler.Instance.IsInsideLobby)
                 playerID = character.GetComponent<NetworkPlayer>().NetworkSpawnID;

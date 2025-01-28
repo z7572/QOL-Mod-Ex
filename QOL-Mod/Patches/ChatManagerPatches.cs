@@ -67,6 +67,10 @@ namespace QOL {
             {
                 playerID = Traverse.Create(__instance).Field("m_NetworkPlayer").GetValue<NetworkPlayer>().NetworkSpawnID;
             }
+            catch (Exception)
+            {
+                Helper.LocalChat = __instance;
+            }
             finally
             {
                 // Assigns m_NetworkPlayer value to Helper.localNetworkPlayer if networkPlayer is ours

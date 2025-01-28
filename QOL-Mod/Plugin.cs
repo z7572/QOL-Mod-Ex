@@ -33,6 +33,8 @@ namespace QOL
                 ControllerPatches.Patch(harmony);
                 Logger.LogInfo("Applying GameManager patch...");
                 GameManagerPatches.Patch(harmony);
+                Logger.LogInfo("Applying Fighting patch...");
+                FightingPatch.Patch(harmony);
                 Logger.LogInfo("Applying OnlinePlayerUI patch...");
                 OnlinePlayerUIPatch.Patch(harmony);
                 Logger.LogInfo("Applying P2PPackageHandler patch...");
@@ -47,10 +49,16 @@ namespace QOL
                 MovementPatch.Patch(harmony);
                 Logger.LogInfo("Applying MapSelectionHandlerPatch...");
                 MapSelectionHandlerPatches.Patch(harmony);
+                Logger.LogInfo("Applying AIPatch...");
+                AIPatch.Patch(harmony);
+                Logger.LogInfo("Applying MethodsPatch...");
+                harmony.PatchAll();
             }
             catch (Exception ex)
             {
                 Logger.LogError("Exception on applying patches: " + ex.InnerException);
+                Logger.LogError("Exception on applying patches: " + ex.Message);
+                Logger.LogError("Exception on applying patches: " + ex);
             }
 
             if (!Directory.Exists(InternalsPath))
@@ -91,7 +99,8 @@ namespace QOL
             {
                 Directory.CreateDirectory(MusicPath);
                 File.WriteAllText(MusicPath + "README.txt", "Only WAV and OGG audio files are supported.\n"
-                                                            + "For MP3 and other types, please convert them first!");
+                                                            + "For MP3 and other types, please convert them first!\n"
+                                                            + "You can use number prefix like 1., 2., 3. etc. to set the order of the songs.");
             }
 
             // Loading highscore from txt
@@ -118,7 +127,7 @@ namespace QOL
             canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             canvasScaler.referenceResolution = new Vector2(1920, 1080);
 
-            modTextTMP.text = "<color=red>Monky's QOL Mod</color> " + "<color=white>v" + VersionNumber + " </color><color=#00bbff>Testing";
+            modTextTMP.text = "<color=red>Monky's QOL Mod</color> " + "<color=white>v" + VersionNumber + " </color><color=#00bbff>z7572";
 
             modTextTMP.fontSizeMax = 25;
             modTextTMP.fontSize = 25;
@@ -129,7 +138,7 @@ namespace QOL
             modTextTMP.richText = true;
         }
 
-        public const string VersionNumber = "1.17.4"; // Version number
+        public const string VersionNumber = "1.18.0"; // Version number
         public const string Guid = "monky.plugins.QOL";
         public static string NewUpdateVerCode = "";
 

@@ -11,7 +11,6 @@ public class HotKeyManager : MonoBehaviour
     private KeyCode prevWeaponKey = KeyCode.Q;
     private float keyHoldTime = 0f;
     private const float HoldThreshold = 0.5f;
-    public int CurrentWeaponIndex = 0;
 
     private ControllerHandler controllerHandler;
 
@@ -27,13 +26,13 @@ public class HotKeyManager : MonoBehaviour
     private void Update()
     {
         // Switch weapon
-        if (!ChatManager.isTyping && controllerHandler != null)
+        if (Helper.SwitchWeapon && !ChatManager.isTyping && controllerHandler != null)
         {
             foreach (Controller controller in controllerHandler.ActivePlayers)
             {
-                if (!controller.HasControl) continue;
+                if (!controller.HasControl || controller.isAI) continue;
 
-                var fighting = Utils.GetFieldValue<Fighting>(controller, "fighting");
+                var fighting = Traverse.Create(controller).Field("fighting").GetValue<Fighting>();
                 if (fighting == null) continue;
 
                 if (Input.GetKey(prevWeaponKey))
@@ -43,9 +42,9 @@ public class HotKeyManager : MonoBehaviour
                     {
                         if (fighting.CurrentWeaponIndex != 0)
                         {
-                            CurrentWeaponIndex = fighting.CurrentWeaponIndex; // Update current weapon index(except for punch)
+                            Helper.CurrentWeaponIndex = fighting.CurrentWeaponIndex; // Update current weapon index(except for punch)
                         }
-                        if (CurrentWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
+                        if (Helper.CurrentWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
                         {
                             SwitchWeapon(0, fighting); // Switch to thrown weapon
                         }
@@ -67,9 +66,9 @@ public class HotKeyManager : MonoBehaviour
                     {
                         if (fighting.CurrentWeaponIndex != 0)
                         {
-                            CurrentWeaponIndex = fighting.CurrentWeaponIndex;
+                            Helper.CurrentWeaponIndex = fighting.CurrentWeaponIndex;
                         }
-                        if (CurrentWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
+                        if (Helper.CurrentWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
                         {
                             SwitchWeapon(0, fighting);
                         }
@@ -77,7 +76,7 @@ public class HotKeyManager : MonoBehaviour
                         {
                             SwitchWeapon(1, fighting);
                         }
-                        CurrentWeaponIndex = fighting.CurrentWeaponIndex;
+                        Helper.CurrentWeaponIndex = fighting.CurrentWeaponIndex;
                     }
                 }
                 else if (Input.GetKeyUp(nextWeaponKey))
@@ -91,25 +90,25 @@ public class HotKeyManager : MonoBehaviour
     /// <param name="direction">1 for next, -1 for previous</param>
     private void SwitchWeapon(int direction, Fighting fighting)
     {
-        var weapons = Utils.GetFieldValue<Weapons>(fighting, "weapons").transform;
+        var weapons = Traverse.Create(fighting).Field("weapons").GetValue<Weapons>().transform;
 
         int weaponCount = weapons.childCount + 1; // +1 for the empty slot(punch)
 
-        CurrentWeaponIndex += direction;
+        Helper.CurrentWeaponIndex += direction;
 
-        if (CurrentWeaponIndex < 0)
+        if (Helper.CurrentWeaponIndex < 0)
         {
-            CurrentWeaponIndex = weaponCount - 1;
+            Helper.CurrentWeaponIndex = weaponCount - 1;
         }
-        else if (CurrentWeaponIndex >= weaponCount)
+        else if (Helper.CurrentWeaponIndex >= weaponCount)
         {
-            CurrentWeaponIndex = 0;
+            Helper.CurrentWeaponIndex = 0;
         }
 
         fighting.Dissarm();
-        fighting.NetworkPickUpWeapon((byte)CurrentWeaponIndex);
+        fighting.NetworkPickUpWeapon((byte)Helper.CurrentWeaponIndex);
 
-        var weapon = Utils.GetFieldValue<Weapon>(fighting, "weapon");
+        var weapon = Traverse.Create(fighting).Field("weapon").GetValue<Weapon>();
         if (weapon == null || string.IsNullOrEmpty(weapon.name)) return;
 
         var weaponName = weapon.name;

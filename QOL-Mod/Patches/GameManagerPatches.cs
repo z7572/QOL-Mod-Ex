@@ -29,6 +29,7 @@ namespace QOL {
         public static void StartMethodPostfix(GameManager __instance)
         {
             __instance.gameObject.AddComponent<HotKeyManager>();
+            __instance.gameObject.AddComponent<BotHandler>();
             Helper.InitMusic(__instance);
         }
 
