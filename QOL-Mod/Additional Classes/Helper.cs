@@ -76,11 +76,12 @@ namespace QOL
             {
                 ClientData = GameManager.Instance.mMultiplayerManager.ConnectedClients;
 
-            var localID = GameManager.Instance.mMultiplayerManager.LocalPlayerIndex;
-            //localNetworkPlayer = ClientData[localID].PlayerObject.GetComponent<NetworkPlayer>();
-            LocalChat = ClientData[localID].PlayerObject.GetComponentInChildren<ChatManager>();
-            WeaponSelectHandler = UnityEngine.Object.FindObjectOfType<WeaponSelectionHandler>();
-            Debug.Log("Assigned the localNetworkPlayer!: " + localNetworkPlayer.NetworkSpawnID);
+                var localID = GameManager.Instance.mMultiplayerManager.LocalPlayerIndex;
+                //localNetworkPlayer = ClientData[localID].PlayerObject.GetComponent<NetworkPlayer>();
+                LocalChat = ClientData[localID].PlayerObject.GetComponentInChildren<ChatManager>();
+                WeaponSelectHandler = UnityEngine.Object.FindObjectOfType<WeaponSelectionHandler>();
+                Debug.Log("Assigned the localNetworkPlayer!: " + localNetworkPlayer.NetworkSpawnID);
+            }
 
             TMPText = Traverse.Create(__instance).Field("text").GetValue<TextMeshPro>();
             TMPText.richText = ChatCommands.CmdDict["rich"].IsEnabled;

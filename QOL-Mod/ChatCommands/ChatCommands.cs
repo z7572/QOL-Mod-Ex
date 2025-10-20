@@ -46,7 +46,6 @@ namespace QOL
             new Command("private", PrivateCmd, 0, true),
             new Command("profile", ProfileCmd, 1, true, PlayerUtils.PlayerColorsParams),
             new Command("public", PublicCmd, 0, true),
-        new Command("pumpkin", PumpkinCmd, 0, true).MarkAsToggle(),
             new Command("rainbow", RainbowCmd, 0, true).MarkAsToggle(),
             new Command("resolution", ResolutionCmd, 2, true),
             new Command("rich", RichCmd, 0, true).MarkAsToggle(),
