@@ -4,13 +4,14 @@ using UnityEngine;
 using HarmonyLib;
 using QOL;
 
-public class HotKeyManager : MonoBehaviour
+public class CheatManager : MonoBehaviour
 {
     // TODO: Add keybinds to config
     private KeyCode nextWeaponKey = KeyCode.E;
     private KeyCode prevWeaponKey = KeyCode.Q;
     private float keyHoldTime = 0f;
     private const float HoldThreshold = 0.5f;
+    private MapWrapper _currentMap;
 
     private ControllerHandler controllerHandler;
 
@@ -26,7 +27,7 @@ public class HotKeyManager : MonoBehaviour
     private void Update()
     {
         // Switch weapon
-        if (Helper.SwitchWeapon && !ChatManager.isTyping && controllerHandler != null)
+        if (ChatCommands.CmdDict["switchweapon"].IsEnabled && !ChatManager.isTyping && controllerHandler != null)
         {
             foreach (Controller controller in controllerHandler.ActivePlayers)
             {
@@ -42,9 +43,9 @@ public class HotKeyManager : MonoBehaviour
                     {
                         if (fighting.CurrentWeaponIndex != 0)
                         {
-                            Helper.CurrentWeaponIndex = fighting.CurrentWeaponIndex; // Update current weapon index(except for punch)
+                            Helper.SwitcherWeaponIndex = fighting.CurrentWeaponIndex; // Update current weapon index(except for punch)
                         }
-                        if (Helper.CurrentWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
+                        if (Helper.SwitcherWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
                         {
                             SwitchWeapon(0, fighting); // Switch to thrown weapon
                         }
@@ -66,9 +67,9 @@ public class HotKeyManager : MonoBehaviour
                     {
                         if (fighting.CurrentWeaponIndex != 0)
                         {
-                            Helper.CurrentWeaponIndex = fighting.CurrentWeaponIndex;
+                            Helper.SwitcherWeaponIndex = fighting.CurrentWeaponIndex;
                         }
-                        if (Helper.CurrentWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
+                        if (Helper.SwitcherWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
                         {
                             SwitchWeapon(0, fighting);
                         }
@@ -76,7 +77,7 @@ public class HotKeyManager : MonoBehaviour
                         {
                             SwitchWeapon(1, fighting);
                         }
-                        Helper.CurrentWeaponIndex = fighting.CurrentWeaponIndex;
+                        Helper.SwitcherWeaponIndex = fighting.CurrentWeaponIndex;
                     }
                 }
                 else if (Input.GetKeyUp(nextWeaponKey))
@@ -85,6 +86,15 @@ public class HotKeyManager : MonoBehaviour
                 }
             }
         }
+
+        // Keep track of map / level changes
+        var currentMap = GameManager.Instance.GetCurrentMap();
+        if (_currentMap != currentMap)
+        {
+            _currentMap = currentMap;
+            ReapplyToggleOptions();
+        }
+
     }
 
     /// <param name="direction">1 for next, -1 for previous</param>
@@ -94,19 +104,19 @@ public class HotKeyManager : MonoBehaviour
 
         int weaponCount = weapons.childCount + 1; // +1 for the empty slot(punch)
 
-        Helper.CurrentWeaponIndex += direction;
+        Helper.SwitcherWeaponIndex += direction;
 
-        if (Helper.CurrentWeaponIndex < 0)
+        if (Helper.SwitcherWeaponIndex < 0)
         {
-            Helper.CurrentWeaponIndex = weaponCount - 1;
+            Helper.SwitcherWeaponIndex = weaponCount - 1;
         }
-        else if (Helper.CurrentWeaponIndex >= weaponCount)
+        else if (Helper.SwitcherWeaponIndex >= weaponCount)
         {
-            Helper.CurrentWeaponIndex = 0;
+            Helper.SwitcherWeaponIndex = 0;
         }
 
         fighting.Dissarm();
-        fighting.NetworkPickUpWeapon((byte)Helper.CurrentWeaponIndex);
+        fighting.NetworkPickUpWeapon((byte)Helper.SwitcherWeaponIndex);
 
         var weapon = Traverse.Create(fighting).Field("weapon").GetValue<Weapon>();
         if (weapon == null || string.IsNullOrEmpty(weapon.name)) return;
@@ -118,5 +128,15 @@ public class HotKeyManager : MonoBehaviour
         }
 
         Helper.SendModOutput(weaponName, Command.LogType.Success, false);
+    }
+
+    private void ToggleFly()
+    {
+        Helper.controller.canFly = ChatCommands.CmdDict["fly"].IsEnabled;
+    }
+
+    private void ReapplyToggleOptions()
+    {
+        ToggleFly();
     }
 }

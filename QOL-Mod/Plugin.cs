@@ -35,10 +35,14 @@ namespace QOL
                 GameManagerPatches.Patch(harmony);
                 Logger.LogInfo("Applying Fighting patch...");
                 FightingPatch.Patch(harmony);
+                Logger.LogInfo("Applying Weapon patch...");
+                WeaponPatch.Patch(harmony);
                 Logger.LogInfo("Applying OnlinePlayerUI patch...");
                 OnlinePlayerUIPatch.Patch(harmony);
                 Logger.LogInfo("Applying P2PPackageHandler patch...");
                 P2PPackageHandlerPatch.Patch(harmony);
+                Logger.LogInfo("Applying HealthHandler patch...");
+                HealthHandlerPatch.Patch(harmony);
                 Logger.LogInfo("Applying CharacterInformation patch...");
                 CharacterInformationPatch.Patch(harmony);
                 Logger.LogInfo("Applying BossTimer patch...");
@@ -127,7 +131,7 @@ namespace QOL
             canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             canvasScaler.referenceResolution = new Vector2(1920, 1080);
 
-            modTextTMP.text = "<color=red>Monky's QOL Mod</color> " + "<color=white>v" + VersionNumber + " </color><color=#00bbff>z7572";
+            modTextTMP.text = $"<color=red>Monky's QOL Mod</color> <color=white>v{VersionNumber}</color> <color=#0bf>z7572";
 
             modTextTMP.fontSizeMax = 25;
             modTextTMP.fontSize = 25;

@@ -83,9 +83,13 @@ namespace QOL {
             var chatFieldInfo = AccessTools.Field(typeof(ChatManager), "chatField");
             TMP_InputField chatField = (TMP_InputField)chatFieldInfo.GetValue(__instance);
 
+            var startTypingMethod = AccessTools.Method(typeof(ChatManager), "StartTyping");
+            var stopTypingMethod = AccessTools.Method(typeof(ChatManager), "StopTyping");
+
             // Enable inputting commands in local lobbies (will not show chat bubble, some commands work)
             if (!MatchmakingHandler.IsNetworkMatch)
-            { // These are the same as in the original code
+            {
+                // Same as original code
                 if (ChatManager.isTyping)
                 {
                     if (EventSystem.current.currentSelectedGameObject != chatField)
@@ -94,7 +98,7 @@ namespace QOL {
                     }
                     if (Input.GetKeyDown(KeyCode.Escape))
                     {
-                        __instance.StopTyping();
+                        stopTypingMethod.Invoke(__instance, null);
                     }
                 }
                 if (Input.anyKeyDown && ChatManager.isTyping)
@@ -106,11 +110,11 @@ namespace QOL {
                 {
                     if (ChatManager.isTyping)
                     {
-                        __instance.StopTyping();
+                        stopTypingMethod.Invoke(__instance, null);
                     }
                     else if (!PauseManager.isPaused)
                     {
-                        __instance.StartTyping();
+                        startTypingMethod.Invoke(__instance, null);
                     }
                 }
             }
@@ -119,7 +123,7 @@ namespace QOL {
             {
                 if (Input.GetKeyDown(KeyCode.Slash))
                 {
-                    __instance.StartTyping();
+                    startTypingMethod.Invoke(__instance, null);
                     chatField.DeactivateInputField();
                     chatField.text = Command.CmdPrefix.ToString();
                     chatField.stringPosition = chatField.text.Length;
@@ -305,6 +309,14 @@ namespace QOL {
         public static bool SendChatMessageMethodPrefix(ref string message, ChatManager __instance)
         {
             if (_backupTextList[0] != message && message.Length <= 350) SaveForUpArrow(message);
+
+            var chatfield = Traverse.Create(__instance).Field("chatField").GetValue<TMP_InputField>();
+            var parsedTxt = chatfield.textComponent.GetParsedText();
+            parsedTxt = parsedTxt.Remove(parsedTxt.Length - 1);
+            if (parsedTxt != message) // Fixs bug: When text is not empty firstly, pressing ESC will send message, even deleted
+            {                         // However, if text didn't change, the bug happens
+                return false;
+            }
 
             if (message.StartsWith(Command.CmdPrefix))
             {

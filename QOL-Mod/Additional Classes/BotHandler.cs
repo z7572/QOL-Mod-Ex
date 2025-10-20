@@ -34,9 +34,6 @@ namespace QOL
         private readonly float AiMovementForceMultiplier = 4000f;
         private readonly float AiMovementJumpForceMultiplier = 25.0f;
 
-        private static bool SpawnPcEnabled = true;
-        private static bool AiAggressiveEnabled = true;
-
         private void Awake()
         {
             BotHandler._instance = this;
@@ -194,7 +191,9 @@ namespace QOL
             Traverse.Create(playerController).Field("inactive").SetValue(false);
             playerController.SetCollision(true);
 
-            playerController.Start(); // Stops the bot from 'flying away' (glitch workaround for private static  m_Players)
+            var startMethod = AccessTools.Method(typeof(Controller), "Start");
+            startMethod.Invoke(playerController, null); // Stops the bot from 'flying away' (glitch workaround for private static  m_Players)
+            //playerController.Start();
 
             // WIP Tests 
             //
@@ -211,13 +210,14 @@ namespace QOL
 
         public void SpawnBotEnemyPlayer(bool spawnPcEnabled = true)
         {
+            var spawnAIMethod = AccessTools.Method(typeof(HoardHandler), "SpawnAI");
             if (spawnPcEnabled)
             {
                 SpawnBotPlayer(MultiplayerManagerAssets.Instance.PlayerPrefab);
             }
             else
             {
-                hoardHandler.SpawnAI(hoardHandlerPlayer.character);
+                spawnAIMethod.Invoke(hoardHandler, new object[] { hoardHandlerPlayer.character });
             }
 
             SetBotStats();
@@ -225,13 +225,14 @@ namespace QOL
 
         public void SpawnBotEnemyZombie(bool spawnPcEnabled = true)
         {
+            var spawnAIMethod = AccessTools.Method(typeof(HoardHandler), "SpawnAI");
             if (spawnPcEnabled)
             {
                 SpawnBotPlayer(hoardHandlerZombie.character);
             }
             else
             {
-                hoardHandler.SpawnAI(hoardHandlerZombie.character);
+                spawnAIMethod.Invoke(hoardHandler, new object[] { hoardHandlerZombie.character });
             }
 
             SetBotStats();
@@ -239,13 +240,14 @@ namespace QOL
 
         public void SpawnBotEnemyBolt(bool spawnPcEnabled = true)
         {
+            var spawnAIMethod = AccessTools.Method(typeof(HoardHandler), "SpawnAI");
             if (spawnPcEnabled)
             {
                 SpawnBotPlayer(hoardHandlerBolt.character);
             }
             else
             {
-                hoardHandler.SpawnAI(hoardHandlerBolt.character);
+                spawnAIMethod.Invoke(hoardHandler, new object[] { hoardHandlerBolt.character });
             }
 
             SetBotStats();

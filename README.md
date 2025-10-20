@@ -52,37 +52,79 @@ It can be opened with the keybind: <kbd>LeftShift</kbd> + <kbd>F1</kbd><br/>
 An image below shows a visual overview:<br/>
 ![Image of QOL Menu](https://i.ibb.co/pXhrfN7/menu-v14.png)<br/>
 Alternative chat commands are listed directly below.
+
 ## Chat Commands
 
-| Command                                    | Description                                                                                                                                                    |
-|--------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Usage:**		                               | ```/<command_name> [<additional parameter>]```                                                                                                                 |
-| /adv		                                     | Outputs whatever you set it to in the config.                                                                                                                  |
-| /fov                                       | Set the FOV for the game.                                                                                                                                      |
-| /gg		                                      | Enables automatic sending of "gg" upon death of mod user.                                                                                                      |
-| /help		                                    | Opens up the Steam overlay and takes you to this page.                                                                                                         |
-| /hp	```[<player_color>]```	                | Outputs the percent based health of the target color to chat. Leave as ``/hp`` to always get your own.                                                         |
-| /id	```[<player_color>]```		               | Copies the Steam ID of the target player to clipboard.                                                                                                         |
-| /invite		                                  | Generates a "join game" link and copies it to clipboard.                                                                                                       |
-| /lobhp		                                   | Outputs the health set for the whole lobby.                                                                                                                    |
-| /lobregen		                                | Outputs whether or not regen is enabled for the lobby.                                                                                                         |
-| /lowercase		                               | Enables/disables lowercase mode, which has your chat messages always sent in lowercase. Useful for those who keep pressing the caps-lock key.                  |
-| /nuky		                                    | Lets you talk like Nuky. Splits up any message you send and outputs it word by word.                                                                           |
-| /mute ```[<player_color>]```		             | The targeted player's messages wont appear, making them "muted" for you (**client-side only**. A mute only lasts for the lobby you're currently in).           |
-| /ping ```[<player_color>]```		             | Outpus the ping for the targeted player.                                                                                                                       |
-| /private		                                 | Privates the current lobby (**must be host**).                                                                                                                 |
-| /public		                                  | Opens the current lobby to the public (**must be host**).                                                                                                      |
-| /rainbow		                                 | Enables/disables rainbow mode. Dynamically shifts your player color through the color spectrum (the shifting speed of the colors is changeable in the config). |
-| /rich		                                    | Enables rich text for chat (**client-side only**).                                                                                                             |
-| /shrug ```[<message>]```		                 | Appends ¯\\\_☹\_/¯ to the end of the typed message (changeable in config).                                                                                     |
-| /stat ```[<player_color> <stat_type>]```		 | Gets the targeted stat of the targeted player. Open the stat menu to see a list of different stat names.                                                       |
-| /suicide                                   | Kills the user.                                                                                                                                                |
-| /translate		                               | Enables auto-translation for messages from others to English.                                                                                                  |
-| /uncensor		                                | Disables chat censorship.                                                                                                                                      |
-| /uwu		                                     | *uwuifies* any message you send.                                                                                                                               |
-| /ver		                                     | Outputs the mod version string.                                                                                                                                | /winnerhp                                    | Outputs the winner's hp at the end of every round.                                                                                                                                |
-| /winnerhp                                  | Outputs the winner's hp at the end of every round.                                                                                                             |                                                                                                                                                                |
-| /winstreak		                               | Enables winstreak mode.                                                                                                                                        |
+| Command                           | Description                                                                                                                                                    |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Usage:**                        | ```/<command_name> <parameter> [optional parameter]```                                                                                                         |
+| /adv                              | Outputs whatever you set it to in the config.                                                                                                                  |
+| /alias                            |
+| /config `<keys> [value]`          | Allows you to change the values of the config file. Empty value to return default.                                                                             |
+| /deathmsg                         |
+| /dm `<color> <message>`           | Direct messages a player.                                                                                                                                      |
+| /fov                              | Set the FOV for the game.                                                                                                                                      |
+| /fps                              | Set the FPS for the game.                                                                                                                                      |
+| /friend `<color>`                 |                                                                                                                                                                |
+| /gg                               | Enables automatic sending of "gg" upon death of mod user.                                                                                                      |
+| /help                             | Opens up the Steam overlay and takes you to this page.                                                                                                         |
+| /hp	`<color>`                     | Outputs the percent based health of the target color to chat. Leave as ``/hp`` to always get your own.                                                         |
+| /id	`<color>`                     | Copies the Steam ID of the target player to clipboard.                                                                                                         |
+| /invite                           | Generates a "join game" link and copies it to clipboard.                                                                                                       |
+| /lobhp                            | Outputs the health set for the whole lobby.                                                                                                                    |
+| /lobregen                         | Outputs whether or not regen is enabled for the lobby.                                                                                                         |
+| /logprivate                       |
+| /logpublic                        |
+| /lowercase                        | Enables/disables lowercase mode, which has your chat messages always sent in lowercase. Useful for those who keep pressing the caps-lock key.                  |
+| /nuky                             | Lets you talk like Nuky. Splits up any message you send and outputs it word by word.                                                                           |
+| /maps `<preset\|save\|remove>`    |
+| /mute `<color>`                   | The targeted player's messages wont appear, making them "muted" for you (**client-side only**. A mute only lasts for the lobby you're currently in).           |
+| /music skip                       |
+| /music loop `[song_index]`        |
+| /music play `<song_index>`        |
+| /ouchmsg                          |
+| /ping `<color>`                   | Outpus the ping for the targeted player.                                                                                                                       |
+| /private                          | Privates the current lobby (**must be host**).                                                                                                                 |
+| /public                           | Opens the current lobby to the public (**must be host**).                                                                                                      |
+| /rainbow                          | Enables/disables rainbow mode. Dynamically shifts your player color through the color spectrum (the shifting speed of the colors is changeable in the config). |
+| /resolution `<width> <height>`    | Sets the resolution of the game.                                                                                                                               |
+| /rich                             | Enables rich text for chat (**client-side only**).                                                                                                             |
+| /shrug `[message]`                | Appends ¯\\\_☹\_/¯ to the end of the typed message (changeable in config).                                                                                     |
+| /stat `<color> <stat_type>`       | Gets the targeted stat of the targeted player. Open the stat menu to see a list of different stat names.                                                       |
+| /suicide                          | Kills the user.                                                                                                                                                |
+| /translate                        | Enables auto-translation for messages from others to English.                                                                                                  |
+| /uncensor                         | Disables chat censorship.                                                                                                                                      |
+| /uwu                              | *uwuifies* any message you send.                                                                                                                               |
+| /ver                              | Outputs the mod version string.                                                                                                                                |
+| /weapons `<preset>\|save\|remove` |
+| /winnerhp                         | Outputs the winner's hp at the end of every round.                                                                                                             |
+| /winstreak                        | Enables winstreak mode.                                                                                                                                        |
+
+## Cheat Commands
+
+| Command                                                                  | Description                                                                                                                                                 |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| /afk                                                                     | Toggle AFK mode. Assign AI to the player. Not completed.                                                                                                    |
+| /pkg `<color\|all> <x> <y> <Vx> <Vy> [weaponIndex\|-1] [isLocalDisplay]` | Send a fire package to a specified player (or all) with bullet position, velocity, and weapon type (-1 to set current weapon).                              |
+| /bullethell `<color\|all> [isLocalDisplay]`                              | Send all map of Beam ray to a specified player (or all).                                                                                                    |
+| /bulletring `[weaponIndex] [radius]`                                     | Send a ring of bullets to all players. (default radius: 200)                                                                                                |
+| /execute `<color> <command\|say> [parameter]`                            | Execute a command as the specified player.                                                                                                                  |
+| /god                                                                     | Toggle god mode.                                                                                                                                            |
+| /fullauto                                                                | Toggle full auto.                                                                                                                                           |
+| /norecoil                                                                | Toggle no recoil.                                                                                                                                           |
+| /infiniteammo                                                            | Toggle infinite ammo.                                                                                                                                       |
+| /fastfire                                                                | Toggle fast firing.                                                                                                                                         |
+| /fastpunch                                                               | Toggle fast punching.                                                                                                                                       |
+| /blockall                                                                | Toggle all degrees and no cooldown blocking.                                                                                                                |
+| /fly                                                                     | Toggle fly mode.                                                                                                                                            |
+| /gun `[weaponIndex]`                                                     | Give the player the specified weapon (empty to clear, -1 to random).                                                                                        |
+| /kick `<color> [type]`                                                   | Kick the specified player. Type: <br> `0`: Built-in <br> `1`: Client_Init <br> `2`: Workshop_Corruption_Kick <br> `3`: Workshop_Crash <br> `4`: Invalid_Map |
+| /kill `<color>`                                                          | Kill the specified player.                                                                                                                                  |
+| /revive                                                                  | Revive the player. (**client-side only**)                                                                                                                   |
+| /sudo `<color> <message>`                                                | Say as the specified player.                                                                                                                                |
+| /summon `<player\|bolt\|zombie> [spawnPcEnabled]`                        | Spawn a specified player prefab AI, not completed. (**only local**)                                                                                         |
+| /switchweapon                                                            | Toggle switch weapon ability.                                                                                                                               |
+| /win `[color] [mapIndex] `                                               | Set the specified player to win the round and load the specified map.                                                                                       |
 
 ## Stat Menu
 

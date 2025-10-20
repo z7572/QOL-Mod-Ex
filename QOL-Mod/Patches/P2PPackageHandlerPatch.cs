@@ -33,6 +33,7 @@ namespace QOL
                 {
                     // P2PPackageHandlerPatch.PreventKick(steamIdRemote)
                     new CodeInstruction(OpCodes.Ldarg_3),
+                    new CodeInstruction(OpCodes.Ldc_I4_0),
                     CodeInstruction.Call(typeof(P2PPackageHandlerPatch), nameof(PreventKick))
                 });
 
@@ -52,7 +53,7 @@ namespace QOL
                     CodeInstruction.Call(typeof(P2PPackageHandlerPatch), nameof(PreventKick))
                 });
 
-                Debug.Log("Found and patched CheckMessageType method for");
+                Debug.Log("Found and patched CheckMessageType method for OnNewWorkshopMapsRecieved!!");
                 break;
             }
 
@@ -63,21 +64,24 @@ namespace QOL
         [HarmonyReversePatch]
         public static int GetChannelForMsgType(object instance, P2PPackageHandler.MsgType msgType) => 0;
 
+
         // SteamID's are Monky and Rexi and z7572
-        private static void PreventKick(CSteamID kickPacketSender, bool useBlacklist = false)
+        public static void PreventKick(CSteamID kickPacketSender, bool useBlacklist)
         {
+            Helper.LastKickPacketSender = kickPacketSender;
             var senderPlayerColor = Helper.GetColorFromID(Helper.ClientData
                 .First(data => data.ClientID == kickPacketSender)
                 .PlayerObject.GetComponent<NetworkPlayer>()
                 .NetworkSpawnID);
+            var senderPlayerID = kickPacketSender.m_SteamID.ToString();
 
             if (useBlacklist)
             {
-                if (ConfigHandler.BlacklistedPlayers.Contains(senderPlayerColor))
+                if (ConfigHandler.BlacklistedPlayers.Contains(senderPlayerID))
                 {
                     Helper.TrustedKicker = false;
-                    Helper.SendModOutput($"Blocked kick sent by: {senderPlayerColor}", Command.LogType.Warning, false);
-                    Debug.LogWarning($"Blocked kick sent by: {senderPlayerColor}, SteamID: {kickPacketSender.m_SteamID} (Blacklisted)");
+                    Helper.SendModOutput($"(Blacklisted) Blocked kick sent by: {senderPlayerColor}", Command.LogType.Warning, false);
+                    Debug.LogWarning($"(Blacklisted) Blocked kick sent by: {Helper.GetPlayerName(kickPacketSender)}, SteamID: {senderPlayerID}");
                     return;
                 }
             }
@@ -86,11 +90,11 @@ namespace QOL
             {
                 Helper.TrustedKicker = false;
                 Helper.SendModOutput($"Blocked kick sent by: {senderPlayerColor}", Command.LogType.Warning, false);
-                Debug.LogWarning($"Blocked kick sent by: {senderPlayerColor}, SteamID: {kickPacketSender.m_SteamID}");
+                Debug.LogWarning($"Blocked kick sent by: {Helper.GetPlayerName(kickPacketSender)}, SteamID: {senderPlayerID}");
                 // Auto blacklist
-                if (!ConfigHandler.BlacklistedPlayers.Contains(senderPlayerColor))
+                if (!ConfigHandler.BlacklistedPlayers.Contains(senderPlayerID))
                 {
-                    ConfigHandler.BlacklistedPlayers.AddToArray(senderPlayerColor);
+                    ConfigHandler.BlacklistedPlayers.AddToArray(senderPlayerID);
                     ConfigHandler.ModifyEntry("Blacklist", string.Join(",", ConfigHandler.BlacklistedPlayers));
                 }
                 return;

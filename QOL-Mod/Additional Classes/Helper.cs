@@ -295,12 +295,9 @@ namespace QOL
         public static List<ushort> MutedPlayers = new(4);
         //public static readonly bool IsCustomPlayerColor = Plugin.ConfigCustomColor.Value != new Color(1, 1, 1);
         //public static readonly bool IsCustomName = !string.IsNullOrEmpty(Plugin.ConfigCustomName.Value);
-        public static int CurrentWeaponIndex;
-        public static bool SwitchWeapon = false;
         public static bool SongLoop;
         //public static readonly string[] OuchPhrases = Plugin.ConfigOuchPhrases.Value.Split(' ');
         //private static readonly bool NameResize = Plugin.ConfigNoResize.Value;
-        public static bool TrustedKicker;
         private static int _notifyUpdateCount;
         public static IEnumerator RoutineUsed;
 
@@ -311,5 +308,9 @@ namespace QOL
         public static int WinStreak = 0;
 
         //public static HoardHandler[] Hoards = new HoardHandler[3];
+
+        public static bool TrustedKicker;
+        public static CSteamID LastKickPacketSender;
+        public static int SwitcherWeaponIndex;
     }
 }

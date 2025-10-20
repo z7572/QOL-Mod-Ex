@@ -9,7 +9,7 @@ using HarmonyLib;
 
 namespace QOL
 {
-    class CheatHandler
+    class CheatHelper
     {
         public static void FirePackage(short positionX, short positionY, sbyte vectorX, sbyte vectorY,
             ushort fromPlayerID = ushort.MaxValue, ushort toPlayerID = ushort.MaxValue, int weaponIndex = -1 , bool isLocalDisplay = true, ushort syncIndex = 65535)
@@ -87,9 +87,9 @@ namespace QOL
 
             byte[] array = new byte[positionPackage.Size + (2 + 6 + 2 * projectilePackages.Length) + 2];
 
-            using (MemoryStream memoryStream = new MemoryStream(array))
+            using (var memoryStream = new MemoryStream(array))
             {
-                using (BinaryWriter binaryWriter = new BinaryWriter(memoryStream))
+                using (var binaryWriter = new BinaryWriter(memoryStream))
                 {
                     binaryWriter.Write(positionPackage.Position.X);
                     binaryWriter.Write(positionPackage.Position.Y);

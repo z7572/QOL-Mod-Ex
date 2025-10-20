@@ -46,6 +46,7 @@ namespace QOL
             new Command("private", PrivateCmd, 0, true),
             new Command("profile", ProfileCmd, 1, true, PlayerUtils.PlayerColorsParams),
             new Command("public", PublicCmd, 0, true),
+        new Command("pumpkin", PumpkinCmd, 0, true).MarkAsToggle(),
             new Command("rainbow", RainbowCmd, 0, true).MarkAsToggle(),
             new Command("resolution", ResolutionCmd, 2, true),
             new Command("rich", RichCmd, 0, true).MarkAsToggle(),
@@ -73,8 +74,14 @@ namespace QOL
                 CmdNames,
                 new List<string> { } // Parameters of the command
             }),*/
-            new Command("gun", GunCmd, 0, true),
+            new Command("god", GodCmd, 0, true).MarkAsToggle(),
+            new Command("fullauto", FullAutoCmd, 0, true).MarkAsToggle(),
+            new Command("norecoil", NoRecoilCmd, 0, true).MarkAsToggle(),
+            new Command("infiniteammo", InfiniteAmmoCmd, 0, true).MarkAsToggle(),
+            new Command("fastfire", FastFireCmd, 0, true).MarkAsToggle(),
+            new Command("fastpunch", FastPunchCmd, 0, true).MarkAsToggle(),
             new Command("fly", FlyCmd, 0, true).MarkAsToggle(),
+            new Command("gun", GunCmd, 0, true),
             new Command("kick", KickCmd, 1, true, PlayerUtils.PlayerColorsParams),
             new Command("kill", KillCmd, 0, true, PlayerUtils.PlayerColorsParams),
             new Command("revive", ReviveCmd, 0, true),
@@ -803,6 +810,7 @@ namespace QOL
         private static void RainbowCmd(string[] args, Command cmd)
         {
             cmd.Toggle();
+            CheatTextManager.ToggleFeature("Rainbow", cmd.IsEnabled);
             Object.FindObjectOfType<RainbowManager>().enabled = cmd.IsEnabled;
 
             cmd.SetOutputMsg("Toggled PlayerRainbow.");
@@ -973,7 +981,7 @@ namespace QOL
                 if (args.Length > 7) isLocalDisplay = bool.Parse(args[6]);
             }
 
-            CheatHandler.FirePackage(x, y, Vx, Vy, playerID, targetID, weaponIndex, isLocalDisplay);
+            CheatHelper.FirePackage(x, y, Vx, Vy, playerID, targetID, weaponIndex, isLocalDisplay);
 
         }
 
@@ -993,7 +1001,7 @@ namespace QOL
             }
 
             cmd.SetOutputMsg("Beaming: " + Helper.GetColorFromID(targetID));
-            GameManager.Instance.StartCoroutine(CheatHandler.BulletHell(playerID, targetID, isLocalDisplay));
+            GameManager.Instance.StartCoroutine(CheatHelper.BulletHell(playerID, targetID, isLocalDisplay));
         }
 
         public static void BulletRingCmd(string[] args, Command cmd)
@@ -1005,7 +1013,7 @@ namespace QOL
             var radius = args.Length > 1 ? int.Parse(args[1]) : 200;
 
             cmd.SetOutputMsg("Bullet Ring!");
-            GameManager.Instance.StartCoroutine(CheatHandler.BulletRing(playerID, targetID, (short)radius, weaponIndex));
+            GameManager.Instance.StartCoroutine(CheatHelper.BulletRing(playerID, targetID, (short)radius, weaponIndex));
         }
 
         public static void AfkCmd(string[] args, Command cmd)
@@ -1073,15 +1081,71 @@ namespace QOL
             var controller = Helper.controller;
             cmd.IsEnabled = controller.canFly;
             cmd.Toggle();
+            CheatTextManager.ToggleFeature("Fly", cmd.IsEnabled);
             controller.canFly = cmd.IsEnabled;
-            cmd.SetOutputMsg("Toggled Fly Mode.");
+            cmd.SetOutputMsg("Toggled Fly.");
+        }
+
+        private static void GodCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("GodMode", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled GodMode.");
+        }
+
+        private static void FullAutoCmd(string[] args, Command cmd)
+        {
+            var fighting = Traverse.Create(Helper.controller).Field("fighting").GetValue<Fighting>();
+            var weapon = Traverse.Create(fighting).Field("weapon").GetValue<Weapon>();
+
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("FullAuto", cmd.IsEnabled);
+            if (cmd.IsEnabled && weapon != null) // Punch shouldn't be fullauto
+            {
+                fighting.fullAuto = true;
+            }
+            else
+            {
+                fighting.fullAuto = weapon != null ? weapon.fullAuto : false;
+            }
+            cmd.SetOutputMsg("Toggled FullAuto.");
+        }
+
+        private static void NoRecoilCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("NoRecoil", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled NoRecoil.");
+        }
+
+        private static void InfiniteAmmoCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("InfiniteAmmo", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled InfiniteAmmo.");
+        }
+
+        private static void FastFireCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("FastFire", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled FastFire.");
+        }
+
+        private static void FastPunchCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("FastPunch", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled FastPunch.");
         }
 
         private static void GunCmd(string[] args, Command cmd)
         {
             if (args[0] == "-1")
             {
-                GameManager.Instance.SpawnRandomWeapon();
+                var spawnRandomWeaponMethod = AccessTools.Method(typeof(GameManager), "SpawnRandomWeapon");
+                spawnRandomWeaponMethod.Invoke(GameManager.Instance, null);
+                //GameManager.Instance.SpawnRandomWeapon();
                 return;
             }
             var fighting = Traverse.Create(Helper.controller).Field("fighting").GetValue<Fighting>();
@@ -1122,7 +1186,7 @@ namespace QOL
             }
             switch (method)
             {
-                case "0": // Normal
+                case "0": // Built-in
                     msgType = P2PPackageHandler.MsgType.KickPlayer;
                     break;
                 case "1": // Client_Init
@@ -1145,7 +1209,7 @@ namespace QOL
                     break;
                 default:
                     cmd.SetLogType(Command.LogType.Warning);
-                    cmd.SetOutputMsg("Invalid method! 0:Normal 1:Client_Init 2:Workshop_Corruption_Kick 3:Workshop_Crash");
+                    cmd.SetOutputMsg("Invalid method! 0:Built-in 1:Client_Init 2:Workshop_Corruption_Kick 3:Workshop_Crash 4:Invalid_Map");
                     return;
             }
             P2PPackageHandler.Instance.SendP2PPacketToUser(Helper.GetSteamID(targetID), payload, msgType,
@@ -1251,9 +1315,9 @@ namespace QOL
 
         private static void SwitchWeaponCmd(string[] args, Command cmd)
         {
-            Helper.SwitchWeapon = !Helper.SwitchWeapon;
-            cmd.IsEnabled = Helper.SwitchWeapon;
-            cmd.SetOutputMsg("Toggled SwitchWeapon");
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("WeaponSwitch", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled WeaponSwitch.");
         }
 
         // Set the selected player win and switch to selected map
