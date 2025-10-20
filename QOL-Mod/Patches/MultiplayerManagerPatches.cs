@@ -1,8 +1,10 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
+using Steamworks;
 using Object = UnityEngine.Object;
 
 
@@ -36,6 +38,11 @@ namespace QOL {
             var onKickedMethodPrefix = new HarmonyMethod(typeof(MultiplayerManagerPatches)
                 .GetMethod(nameof(OnKickedMethodPrefix)));
             harmonyInstance.Patch(onKickedMethod, prefix: onKickedMethodPrefix);
+
+            var onNewWorkshopMapsRecievedMethod = AccessTools.Method(typeof(MultiplayerManager), "OnNewWorkshopMapsRecieved");
+            var onNewWorkshopMapsRecievedMethodPrefix = new HarmonyMethod(typeof(MultiplayerManagerPatches)
+                .GetMethod(nameof(OnNewWorkshopMapsRecievedMethodPrefix)));
+            harmonyInstance.Patch(onNewWorkshopMapsRecievedMethod, prefix: onNewWorkshopMapsRecievedMethodPrefix);
         }
 
         public static void OnServerJoinedMethodPostfix()
@@ -50,8 +57,62 @@ namespace QOL {
             GameManagerPatches.LobbiesJoined += 1;
         }
 
-        // Guards against kick attempts made towards the user by skipping the method, if not Monky or Rexi
+        // Guards against built-in kick attempts made towards the user by skipping the method, if not Monky or Rexi or z7572
         public static bool OnKickedMethodPrefix() => Helper.TrustedKicker;
+
+        // Guards against Workshop_Corruption_Kick
+        public static bool OnNewWorkshopMapsRecievedMethodPrefix(ref byte[] ___mapData)
+        {
+            if (!Helper.TrustedKicker) return false;
+
+            var senderPlayerColor = Helper.GetColorFromID(Helper.ClientData
+                .First(data => data.ClientID == Helper.LastKickPacketSender)
+                .PlayerObject.GetComponent<NetworkPlayer>()
+                .NetworkSpawnID);
+            var senderPlayerID = Helper.LastKickPacketSender.m_SteamID.ToString();
+
+            // Oringinal codes to download maps
+            try
+            {
+                using (var memoryStream = new MemoryStream(___mapData))
+                using (var binaryReader = new BinaryReader(memoryStream))
+                {
+                    ushort mapCount = binaryReader.ReadUInt16();
+                    if (mapCount == 0)
+                        throw new InvalidDataException("Null map data");
+
+                    ulong[] mapIDs = new ulong[mapCount];
+                    for (int i = 0; i < mapCount; i++)
+                    {
+                        mapIDs[i] = binaryReader.ReadUInt64();
+
+                        var state = WorkshopMapsLoader.Instance.GetItemState(new PublishedFileId_t(mapIDs[i]));
+                        bool needsDownload = (state & (EItemState.k_EItemStateInstalled | EItemState.k_EItemStateNeedsUpdate))
+                                            != EItemState.k_EItemStateInstalled;
+
+                        // Check if mapID is valid
+                        if (needsDownload && !SteamUGC.DownloadItem(new PublishedFileId_t(mapIDs[i]), false))
+                        {
+                            throw new InvalidOperationException($"Download failed for map: {mapIDs[i]}");
+                        }
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex.Message);
+                Helper.SendModOutput($"Blocked kick sent by: {senderPlayerColor}", Command.LogType.Warning, false);
+                Debug.LogWarning($"Blocked kick sent by: {Helper.GetPlayerName(Helper.LastKickPacketSender)}, SteamID: {senderPlayerID}");
+                // Auto blacklist
+                if (!ConfigHandler.BlacklistedPlayers.Contains(senderPlayerID))
+                {
+                    ConfigHandler.BlacklistedPlayers.AddToArray(senderPlayerID);
+                    ConfigHandler.ModifyEntry("Blacklist", string.Join(",", ConfigHandler.BlacklistedPlayers));
+                }
+                return false;
+            }
+        }
 
         /*public static void OnPlayerSpawnedMethodPrefix(ref GameObject ___m_PlayerPrefab)
         {
@@ -59,8 +120,9 @@ namespace QOL {
 
             foreach (var hoard in Resources.FindObjectsOfTypeAll<HoardHandler>())
             {
-                if (hoard.name == "AI spawner (1)") Helper.Hoards[0] = hoard; // Bolt
-                if (hoard.name == "AI spawner (2)") Helper.Hoards[1] = hoard; // Zombie
+                if (hoard.name == "AI spawner") Helper.Hoards[0] = hoard; // Player
+                if (hoard.name == "AI spawner (1)") Helper.Hoards[1] = hoard; // Bolt
+                if (hoard.name == "AI spawner (2)") Helper.Hoards[2] = hoard; // Zombie
             }
 
             Debug.Log("Trying to find child objs!!");
@@ -115,6 +177,8 @@ namespace QOL {
                             ? ConfigHandler.DefaultColors[player.NetworkSpawnID]
                             : customPlayerColor,
                         character);
+
+                    Helper.SwitcherWeaponIndex = 0;
                 }
             }
         }
@@ -167,6 +231,10 @@ namespace QOL {
 
         public static void ChangeAllCharacterColors(Color colorWanted, GameObject character)
         {
+            var customPlayerColor = ConfigHandler.GetEntry<Color>("CustomColor");
+            var isCustomPlayerColor = customPlayerColor != ConfigHandler.GetEntry<Color>("CustomColor", true);
+            if (!isCustomPlayerColor) return;
+
             var playerID = 0;
             if (MatchmakingHandler.Instance.IsInsideLobby)
                 playerID = character.GetComponent<NetworkPlayer>().NetworkSpawnID;

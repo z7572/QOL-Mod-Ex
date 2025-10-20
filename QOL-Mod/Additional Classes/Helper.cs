@@ -29,7 +29,7 @@ namespace QOL
         };
 
         // Returns the corresponding color from the specified spawnID
-        public static string GetColorFromID(ushort x) => x switch { 1 => "Blue", 2 => "Red", 3 => "Green", _ => "Yellow" };
+        public static string GetColorFromID(ushort x) => x switch { 1 => "Blue", 2 => "Red", 3 => "Green", 65535 => "All", _ => "Yellow" };
 
         // Returns the targeted player based on the specified spawnID
         // ReSharper disable Unity.PerformanceAnalysis
@@ -53,7 +53,7 @@ namespace QOL
             {
                 foreach (Controller controller in controllerHandler.ActivePlayers)
                 {
-                    if (controller.HasControl)
+                    if (controller.HasControl && !controller.isAI)
                     {
                         return controller;
                     }
@@ -67,13 +67,14 @@ namespace QOL
         {
             controllerHandler = GameObject.Find("GameManagement").GetComponent<ControllerHandler>();
             gameManager = GameObject.Find("GameManagement").GetComponent<GameManager>();
-            Fighting fighting = Utils.GetFieldValue<Fighting>(controller, "fighting");
-            localNetworkPlayer = Utils.GetFieldValue<NetworkPlayer>(fighting, "mNetworkPlayer");
+            Fighting fighting = Traverse.Create(controller).Field("fighting").GetValue<Fighting>();
+            localNetworkPlayer = Traverse.Create(fighting).Field("mNetworkPlayer").GetValue<NetworkPlayer>();
 
-            if (playerID != GameManager.Instance.mMultiplayerManager.LocalPlayerIndex) return;
-
-            ClientData = GameManager.Instance.mMultiplayerManager.ConnectedClients;
             MutedPlayers.Clear();
+
+            if (playerID == GameManager.Instance.mMultiplayerManager.LocalPlayerIndex)
+            {
+                ClientData = GameManager.Instance.mMultiplayerManager.ConnectedClients;
 
             var localID = GameManager.Instance.mMultiplayerManager.LocalPlayerIndex;
             //localNetworkPlayer = ClientData[localID].PlayerObject.GetComponent<NetworkPlayer>();
@@ -159,7 +160,7 @@ namespace QOL
             }
             else
             {
-                return; // TODO: Add local output support
+                LocalChat.Talk(msg);
             }
         }
 
@@ -171,19 +172,16 @@ namespace QOL
                 return;
             }
 
-            if (MatchmakingHandler.IsNetworkMatch)
+            var msgColor = logType switch
             {
-                var msgColor = logType switch
-                {
-                    Command.LogType.Warning => "<#CC0000>",
-                    // Enabled => green, disabled => gray
-                    Command.LogType.Success => toggleState ? "<#006400>" : "<#56595c>",
-                    _ => ""
-                };
+                Command.LogType.Warning => "<#CC0000>",
+                // Enabled => green, disabled => gray
+                Command.LogType.Success => toggleState ? "<#006400>" : "<#56595c>",
+                _ => ""
+            };
 
-                TMPText.richText = true;
-                LocalChat.Talk(msgColor + msg);
-            }
+            TMPText.richText = true;
+            LocalChat.Talk(msgColor + msg);
         }
 
         public static void InitMusic(GameManager __instance)
@@ -199,13 +197,23 @@ namespace QOL
             __instance.StartCoroutine(LoadMusicFilesAsync(filePaths, __instance));
         }
 
-        public static IEnumerator LoadMusicFilesAsync(string[] filePaths, GameManager __instance)
+        private static IEnumerator LoadMusicFilesAsync(string[] filePaths, GameManager __instance)
         {
-            List<IEnumerator> loadingCoroutines = new List<IEnumerator>();
+            var loadingCoroutines = new List<IEnumerator>();
 
             foreach (var filePath in filePaths)
             {
-                loadingCoroutines.Add(ImportWav(filePath, CreateSongAndAddToMusic));
+                loadingCoroutines.Add(ImportWav(filePath, audioClip =>
+                    {
+                        var fileName = Path.GetFileNameWithoutExtension(filePath);
+                        var dotIndex = fileName.IndexOf('.');
+                        if (dotIndex > 0 && fileName.Substring(0, dotIndex).All(char.IsDigit))
+                        {
+                            fileName = fileName.Substring(dotIndex + 1).TrimStart(); // Remove number prefix
+                        }
+                        audioClip.name = fileName;
+                        MusicHandler.Instance.myMusic = MusicHandler.Instance.myMusic.AddToArray(new MusicClip { clip = audioClip });
+                    }));
             }
 
             foreach (var coroutine in loadingCoroutines)
@@ -214,7 +222,7 @@ namespace QOL
             }
         }
 
-        public static IEnumerator ImportWav(string url, Action<AudioClip> callback)
+        private static IEnumerator ImportWav(string url, Action<AudioClip> callback)
         {
             url = "file:///" + url.Replace(" ", "%20");
             Debug.Log("Loading song: " + url);
@@ -231,9 +239,6 @@ namespace QOL
             var audioClip = DownloadHandlerAudioClip.GetContent(www);
             callback(audioClip);
         }
-
-        private static void CreateSongAndAddToMusic(AudioClip audioClip)
-            => MusicHandler.Instance.myMusic = MusicHandler.Instance.myMusic.AddToArray(new MusicClip { clip = audioClip });
 
         private static IEnumerator CheckForModUpdate()
         {
@@ -292,7 +297,6 @@ namespace QOL
         public static bool SongLoop;
         //public static readonly string[] OuchPhrases = Plugin.ConfigOuchPhrases.Value.Split(' ');
         //private static readonly bool NameResize = Plugin.ConfigNoResize.Value;
-        public static bool TrustedKicker;
         private static int _notifyUpdateCount;
         public static IEnumerator RoutineUsed;
 
@@ -303,6 +307,10 @@ namespace QOL
         public static TextMeshPro TMPText;
         public static int WinStreak = 0;
 
-        //public static HoardHandler[] Hoards = new HoardHandler[2];
+        //public static HoardHandler[] Hoards = new HoardHandler[3];
+
+        public static bool TrustedKicker;
+        public static CSteamID LastKickPacketSender;
+        public static int SwitcherWeaponIndex;
     }
 }

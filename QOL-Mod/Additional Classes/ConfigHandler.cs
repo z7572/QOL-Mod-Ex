@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using BepInEx.Configuration;
 using TMPro;
+using Steamworks;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -29,6 +30,7 @@ namespace QOL {
         public static Color[] DefaultColors { get; } = new Color[4];
         public static string[] OuchPhrases { get; private set; }
         public static string[] DeathPhrases { get; private set; }
+        public static string[] BlacklistedPlayers { get; private set; }
 
 
         public static void InitializeConfig(ConfigFile config)
@@ -55,7 +57,7 @@ namespace QOL {
                     return;
                 }
 
-                MultiplayerManagerPatches.ChangeAllCharacterColors(DefaultColors[localUser.NetworkSpawnID], localUser.gameObject);
+                //MultiplayerManagerPatches.ChangeAllCharacterColors(DefaultColors[localUser.NetworkSpawnID], localUser.gameObject);
             };
 
             EntriesDict["CustomColorOnParticle"] = config.Bind(PlayerColorSect,
@@ -280,6 +282,17 @@ namespace QOL {
                 false,
                 "Enable always show the HP for the winner of the round on-startup?");
 
+            var blacklistEntry = config.Bind(MiscSect,
+                "Blacklist",
+                "76561199219504453",
+                "Met a hacker? Add their CSteamID into blacklist to prevent their kicks! Comma seperated.\n"+
+                "(Recommended: 76561199219504453)");
+
+            var blacklistEntryKey = blacklistEntry.Definition.Key;
+            EntriesDict[blacklistEntryKey] = blacklistEntry;
+
+            blacklistEntry.SettingChanged += (_, _) => BlacklistedPlayers = ParseCommaSepPhrases(blacklistEntryKey);
+
             var cmdPrefixEntry = config.Bind(MiscSect,
                 "CommandPrefix",
                 "/",
@@ -368,6 +381,7 @@ namespace QOL {
             AllOutputPublic = GetEntry<bool>("AlwaysPublicOutput"); // Does not trigger onChanged method when modified
 
             // Values that need to be parsed and initialized now
+            BlacklistedPlayers = ParseCommaSepPhrases(blacklistEntryKey);
             DeathPhrases = ParseCommaSepPhrases(deathPhrasesEntryKey);
             OuchPhrases = ParseCommaSepPhrases(ouchPhrasesEntryKey);
             IsCustomPlayerColor = customColorEntry.Value != (Color)customColorEntry.DefaultValue;

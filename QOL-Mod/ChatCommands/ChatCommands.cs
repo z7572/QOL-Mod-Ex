@@ -24,25 +24,14 @@ namespace QOL
             new Command("config", ConfigCmd, 1, true, ConfigHandler.GetConfigKeys().ToList()),
             new Command("deathmsg", DeathMsgCmd, 0, false).MarkAsToggle(),
             new Command("dm", DmCmd, 1, false, PlayerUtils.PlayerColorsParams),
-            new Command("execute", ExecuteCmd, 2, true, PlayerUtils.PlayerColorsParams),
-                /* TODO: Implement multiple auto-completion
-                new List<List<string>>
-                {
-                    PlayerUtils.PlayerColorsParams,
-                    CmdNames,
-                    new List<string> { } // Parameters of the command
-                }),*/
             new Command("fov", FovCmd, 1, true),
             new Command("fps", FpsCmd, 1, true),
             new Command("friend", FriendCmd, 1, true, PlayerUtils.PlayerColorsParams),
             new Command("gg", GgCmd, 0, true).MarkAsToggle(),
-            new Command("gun", GunCmd, 0, true),
             new Command("help", HelpCmd, 0, true),
             new Command("hp", HpCmd, 0, false, PlayerUtils.PlayerColorsParams).SetAlwaysPublic(),
             new Command("id", IdCmd, 1, true, PlayerUtils.PlayerColorsParams),
             new Command("invite", InviteCmd, 0, true),
-            new Command("kick", KickCmd, 1, true, PlayerUtils.PlayerColorsParams),
-            new Command("kill", KillCmd, 0, false, PlayerUtils.PlayerColorsParams),
             new Command("lobhp", LobHpCmd, 0, false).SetAlwaysPublic(),
             new Command("lobregen", LobRegenCmd, 0, false).SetAlwaysPublic(),
             new Command("logprivate", LogPrivateCmd, 1, true, CmdNames),
@@ -57,22 +46,50 @@ namespace QOL
             new Command("private", PrivateCmd, 0, true),
             new Command("profile", ProfileCmd, 1, true, PlayerUtils.PlayerColorsParams),
             new Command("public", PublicCmd, 0, true),
+        new Command("pumpkin", PumpkinCmd, 0, true).MarkAsToggle(),
             new Command("rainbow", RainbowCmd, 0, true).MarkAsToggle(),
             new Command("resolution", ResolutionCmd, 2, true),
-            new Command("revive", ReviveCmd, 0, true),
             new Command("rich", RichCmd, 0, true).MarkAsToggle(),
             new Command("shrug", ShrugCmd, 0, false).SetAlwaysPublic(),
             new Command("stat", StatCmd, 1, true),
-            new Command("sudo", SudoCmd, 2, true, PlayerUtils.PlayerColorsParamsWithAll),
             new Command("suicide", SuicideCmd, 0, false),
             new Command("translate", TranslateCmd, 0, true).MarkAsToggle(),
             new Command("uncensor", UncensorCmd, 0, true).MarkAsToggle(),
             new Command("uwu", UwuCmd, 0, true).MarkAsToggle(),
             new Command("ver", VerCmd, 0, true),
-            new Command("win", WinCmd, 2, true, PlayerUtils.PlayerColorsParams),
             new Command("weapons", WeaponsCmd, 1, true, GunPresetHandler.GunPresetNames),
             new Command("winnerhp", WinnerHpCmd, 0, false).MarkAsToggle(),
-            new Command("winstreak", WinstreakCmd, 0, true).MarkAsToggle()
+            new Command("winstreak", WinstreakCmd, 0, true).MarkAsToggle(),
+
+            // Cheat cmds below
+            new Command("afk", AfkCmd, 0, true).MarkAsToggle(), // TODO: Assign AI to player and auto turn off when anyKeyDown
+            new Command("pkg", PkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
+            new Command("bullethell", BulletHellCmd, 0, true, PlayerUtils.PlayerColorsParamsWithAll),
+            new Command("bulletring", BulletRingCmd, 0, true),
+            new Command("execute", ExecuteCmd, 2, true, PlayerUtils.PlayerColorsParams),
+            /* TODO: Implement multiple auto-completion
+            new List<List<string>>
+            {
+                PlayerUtils.PlayerColorsParams,
+                CmdNames,
+                new List<string> { } // Parameters of the command
+            }),*/
+            new Command("god", GodCmd, 0, true).MarkAsToggle(),
+            new Command("fullauto", FullAutoCmd, 0, true).MarkAsToggle(),
+            new Command("norecoil", NoRecoilCmd, 0, true).MarkAsToggle(),
+            new Command("infiniteammo", InfiniteAmmoCmd, 0, true).MarkAsToggle(),
+            new Command("fastfire", FastFireCmd, 0, true).MarkAsToggle(),
+            new Command("fastpunch", FastPunchCmd, 0, true).MarkAsToggle(),
+            new Command("fly", FlyCmd, 0, true).MarkAsToggle(),
+            new Command("gun", GunCmd, 0, true),
+            new Command("kick", KickCmd, 1, true, PlayerUtils.PlayerColorsParams),
+            new Command("kill", KillCmd, 0, true, PlayerUtils.PlayerColorsParams),
+            new Command("revive", ReviveCmd, 0, true),
+            new Command("sudo", SudoCmd, 2, true, PlayerUtils.PlayerColorsParamsWithAll),
+            new Command("summon", SummonCmd, 1, true, new List<string>(3) { "player", "bolt", "zombie" }),
+            new Command("switchweapon",SwitchWeaponCmd, 0, true).MarkAsToggle(),
+            new Command("win", WinCmd, 0, true, PlayerUtils.PlayerColorsParams),
+
         };
 
         public static readonly Dictionary<string, Command> CmdDict = Cmds.ToDictionary(cmd => cmd.Name.Substring(1),
@@ -88,6 +105,8 @@ namespace QOL
 
             if (File.Exists(Plugin.CmdAliasesPath))
                 LoadCmdAliases();
+
+            CmdNames.Sort();
 
             // Reflection hackery so that auto-params for the alias, log, maps, weapons cmds work
             const string autoParamsBackingField = $"<{nameof(Command.AutoParams)}>k__BackingField";
@@ -138,8 +157,6 @@ namespace QOL
                     foreach (var alias in cmd.Aliases)
                         CmdDict[alias.Substring(1)] = cmd;
                 }
-
-                CmdNames.Sort();
             }
             catch (Exception e)
             {
@@ -333,36 +350,6 @@ namespace QOL
                 channel);
         }
 
-        // Execute commands as specified player
-        private static void ExecuteCmd(string[] args, Command cmd)
-        {
-            var targetID = Helper.GetIDFromColor(args[0]);
-            var targetCommand = args[1].TrimStart(Command.CmdPrefix).ToLower();
-            var argsToExecute = args.Skip(2).ToArray(); // Skip first 2 args (player, command)
-            if (!PlayerUtils.IsPlayerInLobby(targetID))
-            {
-                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
-                cmd.SetLogType(Command.LogType.Warning);
-                return;
-            }
-            Helper.localNetworkPlayer = Helper.GetNetworkPlayer(targetID);
-
-            if (targetCommand == "say")
-            {
-                var argsToSay = new[] { args[0] }.Concat(args.Skip(2)).ToArray(); // (player, args)
-                SudoCmd(argsToSay, cmd);
-                return;
-            }
-            if (!CmdDict.ContainsKey(targetCommand))
-            {
-                cmd.SetOutputMsg("Specified command or it's alias not found. See /help for full list of commands.");
-                cmd.SetLogType(Command.LogType.Warning);
-                return;
-            }
-            CmdDict[targetCommand].Execute(argsToExecute);
-            Helper.localNetworkPlayer = default;
-        }
-
         private static void FovCmd(string[] args, Command cmd) // TODO: Do tryparse instead to provide better error handling
         {
             var success = int.TryParse(args[0], out var newFov);
@@ -408,21 +395,6 @@ namespace QOL
         {
             cmd.Toggle();
             cmd.SetOutputMsg("Toggled AutoGG.");
-        }
-
-        private static void GunCmd(string[] args, Command cmd)
-        {
-            if (args[0] == "-1")
-            {
-                AccessTools.Method(typeof(GameManager), "SpawnRandomWeapon")
-                    .Invoke(GameManager.Instance, null);
-
-                return;
-            }
-
-            var weaponWanted = byte.Parse(args[0]);
-            Helper.localNetworkPlayer.gameObject.GetComponent<Fighting>().NetworkPickUpWeapon(weaponWanted);
-            cmd.SetOutputMsg("Gave gun #" + weaponWanted);
         }
 
         private static void WeaponsCmd(string[] args, Command cmd)
@@ -523,70 +495,6 @@ namespace QOL
         {
             GUIUtility.systemCopyBuffer = Helper.GetJoinGameLink();
             cmd.SetOutputMsg("Join link copied to clipboard!");
-        }
-
-        private static void KickCmd(string[] args, Command cmd)
-        {
-            if (args.Length < 1)
-            {
-                cmd.SetOutputMsg("Must select a player!");
-                cmd.SetLogType(Command.LogType.Warning);
-                return;
-            }
-            var method = args.Length > 1 ? args[1] : "1"; // Default: Client_Init
-            var targetID = Helper.GetIDFromColor(args[0]);
-            var msgType = P2PPackageHandler.MsgType.KickPlayer;
-            var payload = new byte[] { 0x00 };
-            if (!PlayerUtils.IsPlayerInLobby(targetID))
-            {
-                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
-                cmd.SetLogType(Command.LogType.Warning);
-                return;
-            }
-            switch (method)
-            {
-                case "0": // Normal
-                    break;
-                case "1": // Client_Init
-                    msgType = P2PPackageHandler.MsgType.ClientInit;
-                    break;
-                case "2": // Workshop_Corruption_Kick
-                    msgType = P2PPackageHandler.MsgType.WorkshopMapsLoaded;
-                    payload = new byte[] { 0x01, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-                    break;
-                case "3": // Workshop_Crash
-                    msgType = P2PPackageHandler.MsgType.WorkshopMapsLoaded;
-                    payload = new byte[524282 /* 0xFFFF * 8 + 2 */];
-                    new System.Random().NextBytes(payload);
-                    payload[0] = 0xFF;
-                    payload[1] = 0xFF;
-                    break;
-                default:
-                    cmd.SetLogType(Command.LogType.Warning);
-                    cmd.SetOutputMsg("Invalid method! 1:Client_Init 2:Workshop_Corruption_Kick 3:Workshop_Crash");
-                    return;
-            }
-            P2PPackageHandler.Instance.SendP2PPacketToUser(Helper.GetSteamID(targetID), payload, msgType,
-            channel: P2PPackageHandlerPatch.GetChannelForMsgType(P2PPackageHandler.Instance, msgType));
-            cmd.SetOutputMsg("Kicked player " + Helper.GetColorFromID(targetID));
-        }
-
-        private static void KillCmd(string[] args, Command cmd)
-        {
-            if (args.Length == 0)
-            {
-                SuicideCmd(args, cmd);
-                return;
-            }
-            var targetID = Helper.GetIDFromColor(args[0]);
-            if (!PlayerUtils.IsPlayerInLobby(targetID))
-            {
-                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
-                cmd.SetLogType(Command.LogType.Warning);
-                return;
-            }
-            Helper.GetNetworkPlayer(targetID).UnitWasDamaged(0, true);
-            cmd.SetOutputMsg("Killed player " + Helper.GetColorFromID(targetID));
         }
 
         // Outputs the HP setting for the lobby to chat
@@ -763,9 +671,14 @@ namespace QOL
         // Music commands
         private static void MusicCmd(string[] args, Command cmd)
         {
+            var musicHandler = MusicHandler.Instance;
+            var currentSong = Traverse.Create(musicHandler).Field("currntSong").GetValue<int>();
+            var songNames = musicHandler.myMusic.Select(x => x.clip.name).ToArray();
+
             switch (args[0].ToLower())
             {
                 case "skip": // Skips to the next song or if all have been played, a random one
+
                     Helper.SongLoop = false;
                     var nextSongMethod = AccessTools.Method(typeof(MusicHandler), "PlayNext");
                     nextSongMethod.Invoke(MusicHandler.Instance, null);
@@ -773,11 +686,10 @@ namespace QOL
                     Helper.SongLoop = false;
                     cmd.IsEnabled = true;
 
-                    cmd.SetOutputMsg("Current song skipped.");
+                    cmd.SetOutputMsg($"Skipped to: { songNames[currentSong]} ({currentSong}/{musicHandler.myMusic.Length - 1})");
                     return;
                 case "play": // Plays song that corresponds to the specified index (0 to # of songs - 1)
                     var songIndex = int.Parse(args[1]);
-                    var musicHandler = MusicHandler.Instance;
 
                     if (songIndex > musicHandler.myMusic.Length - 1 || songIndex < 0)
                     {
@@ -793,14 +705,14 @@ namespace QOL
 
                     Helper.SongLoop = false;
                     cmd.IsEnabled = true;
-                    cmd.SetOutputMsg($"Now playing song #{songIndex} out of {musicHandler.myMusic.Length - 1}.");
+                    cmd.SetOutputMsg($"Now playing: {songNames[songIndex]} ({songIndex}/{musicHandler.myMusic.Length - 1})");
                     return;
                 case "loop": // Loops the current or specified song
                     if (args.Length == 1)
                     {
                         Helper.SongLoop = !Helper.SongLoop;
                         cmd.IsEnabled = Helper.SongLoop;
-                        cmd.SetOutputMsg($"Song looping toggled {(Helper.SongLoop ? "on" : "off")}.");
+                        cmd.SetOutputMsg("Toggled SongLoop.");
                     }
                     else if (args.Length == 2)
                     {
@@ -821,7 +733,7 @@ namespace QOL
 
                         Helper.SongLoop = true;
                         cmd.IsEnabled = true;
-                        cmd.SetOutputMsg($"Now looping song #{songIndex} out of {musicHandler.myMusic.Length - 1}.");
+                        cmd.SetOutputMsg($"Now looping: {songNames[songIndex]} ({songIndex}/{musicHandler.myMusic.Length - 1})");
                         return;
                     }
                     return;
@@ -898,6 +810,7 @@ namespace QOL
         private static void RainbowCmd(string[] args, Command cmd)
         {
             cmd.Toggle();
+            CheatTextManager.ToggleFeature("Rainbow", cmd.IsEnabled);
             Object.FindObjectOfType<RainbowManager>().enabled = cmd.IsEnabled;
 
             cmd.SetOutputMsg("Toggled PlayerRainbow.");
@@ -910,15 +823,6 @@ namespace QOL
 
             Screen.SetResolution(width, height, Convert.ToBoolean(OptionsHolder.fullscreen));
             cmd.SetOutputMsg("Set new resolution of: " + width + "x" + height);
-        }
-
-        public static void ReviveCmd(string[] args, Command cmd)
-        {
-            var reviveMethod = AccessTools.Method(typeof(GameManager), "RevivePlayer");
-            var target = Helper.localNetworkPlayer.gameObject.GetComponent<Controller>();
-            reviveMethod.Invoke(GameManager.Instance, new object[] { target, false });
-
-            cmd.SetOutputMsg("Me alive <:");
         }
 
         // Enables/disables rich text for chat messages
@@ -979,6 +883,368 @@ namespace QOL
                              Helper.GetTargetStatValue(targetStats, targetPlayerStat));
         }
 
+        // Kills user
+        private static void SuicideCmd(string[] args, Command cmd)
+        {
+            Helper.localNetworkPlayer.UnitWasDamaged(5, true, DamageType.LocalDamage, true);
+
+            var phrases = ConfigHandler.DeathPhrases;
+            var randMsg = phrases[Random.Range(0, phrases.Length)];
+            cmd.SetOutputMsg(randMsg);
+        }
+
+        // Enables/disables the autargetStatto-translate system for chat
+        private static void TranslateCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            cmd.SetOutputMsg("Toggled Auto-Translate.");
+        }
+
+        // Enables/disables chat censorship
+        private static void UncensorCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            cmd.SetOutputMsg("Toggled Chat De-censoring.");
+        }
+
+        // Enables UwUifier for chat messages
+        private static void UwuCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            cmd.SetOutputMsg("Toggled UwUifier.");
+        }
+
+        // Outputs the mod version number to chat
+        private static void VerCmd(string[] args, Command cmd) => cmd.SetOutputMsg("QOL Mod: " + Plugin.VersionNumber);
+
+        // Enables/Disables system for outputting the HP of the winner after each round to chat
+        private static void WinnerHpCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            cmd.SetOutputMsg("Toggled WinnerHP Announcer.");
+        }
+
+        // Enables/disables winstreak system
+        private static void WinstreakCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            if (cmd.IsEnabled)
+            {
+                cmd.IsEnabled = true;
+                GameManager.Instance.winText.fontSize = ConfigHandler.GetEntry<int>("WinstreakFontsize");
+            }
+
+            cmd.SetOutputMsg("Toggled Winstreak system.");
+        }
+
+        // ****************************************************************************************************
+        //                                    Cheat command methods below                                      
+        // ****************************************************************************************************
+
+        // Sending fire packages from specified player
+        private static void PkgCmd(string[] args, Command cmd)
+        {
+            var help = "args: target, x, y, Vx, Vy, (weaponIndex), (isLocalDisplay)";
+            if (args.Length < 5)
+            {
+                cmd.SetLogType(Command.LogType.Warning);
+                cmd.SetOutputMsg(help);
+                return;
+            }
+
+            var playerID = ushort.MaxValue;
+            var targetID = ushort.MaxValue;
+            var x = short.Parse(args[1]);
+            var y = short.Parse(args[2]);
+            var Vx = sbyte.Parse(args[3]);
+            var Vy = sbyte.Parse(args[4]);
+            var weaponIndex = -1;
+            var isLocalDisplay = true;
+
+            if (MatchmakingHandler.IsNetworkMatch)
+            {
+                playerID = Helper.localNetworkPlayer.NetworkSpawnID;
+                targetID = args[1] switch
+                {
+                    "all" => ushort.MaxValue,
+                    _ => Helper.GetIDFromColor(args[0]),
+                };
+            }
+
+            if (args.Length > 6)
+            {
+                if (!int.TryParse(args[5], out weaponIndex))
+                {
+                    weaponIndex = -1;
+                    isLocalDisplay = bool.Parse(args[5]);
+                }
+                if (args.Length > 7) isLocalDisplay = bool.Parse(args[6]);
+            }
+
+            CheatHelper.FirePackage(x, y, Vx, Vy, playerID, targetID, weaponIndex, isLocalDisplay);
+
+        }
+
+        public static void BulletHellCmd(string[] args, Command cmd)
+        {
+            // args: targetColor, (isLocalDisplay)
+            var playerID = ushort.MaxValue;
+            var targetID = ushort.MaxValue;
+            var isLocalDisplay = false;
+            if (args.Length > 1) isLocalDisplay = bool.Parse(args[1]);
+
+            if (MatchmakingHandler.IsNetworkMatch)
+            {
+                playerID = Helper.localNetworkPlayer.NetworkSpawnID;
+                if (args.Length > 0)
+                    targetID = args[0] == "all" ? ushort.MaxValue : Helper.GetIDFromColor(args[0]);
+            }
+
+            cmd.SetOutputMsg("Beaming: " + Helper.GetColorFromID(targetID));
+            GameManager.Instance.StartCoroutine(CheatHelper.BulletHell(playerID, targetID, isLocalDisplay));
+        }
+
+        public static void BulletRingCmd(string[] args, Command cmd)
+        {
+            // args: weaponIndex, radius
+            var playerID = MatchmakingHandler.IsNetworkMatch ? Helper.localNetworkPlayer.NetworkSpawnID : ushort.MaxValue;
+            var targetID = ushort.MaxValue;
+            var weaponIndex = args.Length > 0 ? int.Parse(args[0]) : -1;
+            var radius = args.Length > 1 ? int.Parse(args[1]) : 200;
+
+            cmd.SetOutputMsg("Bullet Ring!");
+            GameManager.Instance.StartCoroutine(CheatHelper.BulletRing(playerID, targetID, (short)radius, weaponIndex));
+        }
+
+        public static void AfkCmd(string[] args, Command cmd)
+        {
+            var controller = Helper.controller;
+            var AI = controller.GetComponent<AI>();
+            if (AI.enabled)
+            {
+                AI.enabled = false;
+                cmd.IsEnabled = false;
+            }
+            else
+            {
+                AI.enabled = true;
+                cmd.IsEnabled = true;
+            }
+
+            cmd.SetOutputMsg("Toggled AFK.");
+        }
+
+        // Execute commands as specified player
+        private static void ExecuteCmd(string[] args, Command cmd)
+        {
+            if (args[0] == "all")
+            {
+                // TODO
+                return;
+            }
+            var targetID = Helper.GetIDFromColor(args[0]);
+            var targetCommand = args[1].TrimStart(Command.CmdPrefix).ToLower();
+            var argsToExecute = args.Skip(2).ToArray(); // Skip first 2 args (player, command)
+            if (!PlayerUtils.IsPlayerInLobby(targetID))
+            {
+                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
+            if (targetCommand == "say")
+            {
+                var argsToSay = new[] { args[0] }.Concat(args.Skip(2)).ToArray(); // (player, args)
+                SudoCmd(argsToSay, cmd);
+                return;
+            }
+            if (!CmdDict.ContainsKey(targetCommand))
+            {
+                cmd.SetOutputMsg("Specified command or it's alias not found. See /help for full list of commands.");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
+
+            var localNetworkPlayer = Helper.localNetworkPlayer;
+            try
+            {
+                Helper.localNetworkPlayer = Helper.GetNetworkPlayer(targetID);
+                CmdDict[targetCommand].Execute(argsToExecute);
+            }
+            finally // Skip return, like postfix
+            {
+                Helper.localNetworkPlayer = localNetworkPlayer;
+            }
+        }
+
+        public static void FlyCmd(string[] args, Command cmd)
+        {
+            var controller = Helper.controller;
+            cmd.IsEnabled = controller.canFly;
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("Fly", cmd.IsEnabled);
+            controller.canFly = cmd.IsEnabled;
+            cmd.SetOutputMsg("Toggled Fly.");
+        }
+
+        private static void GodCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("GodMode", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled GodMode.");
+        }
+
+        private static void FullAutoCmd(string[] args, Command cmd)
+        {
+            var fighting = Traverse.Create(Helper.controller).Field("fighting").GetValue<Fighting>();
+            var weapon = Traverse.Create(fighting).Field("weapon").GetValue<Weapon>();
+
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("FullAuto", cmd.IsEnabled);
+            if (cmd.IsEnabled && weapon != null) // Punch shouldn't be fullauto
+            {
+                fighting.fullAuto = true;
+            }
+            else
+            {
+                fighting.fullAuto = weapon != null ? weapon.fullAuto : false;
+            }
+            cmd.SetOutputMsg("Toggled FullAuto.");
+        }
+
+        private static void NoRecoilCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("NoRecoil", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled NoRecoil.");
+        }
+
+        private static void InfiniteAmmoCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("InfiniteAmmo", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled InfiniteAmmo.");
+        }
+
+        private static void FastFireCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("FastFire", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled FastFire.");
+        }
+
+        private static void FastPunchCmd(string[] args, Command cmd)
+        {
+            cmd.Toggle();
+            CheatTextManager.ToggleFeature("FastPunch", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled FastPunch.");
+        }
+
+        private static void GunCmd(string[] args, Command cmd)
+        {
+            if (args[0] == "-1")
+            {
+                var spawnRandomWeaponMethod = AccessTools.Method(typeof(GameManager), "SpawnRandomWeapon");
+                spawnRandomWeaponMethod.Invoke(GameManager.Instance, null);
+                //GameManager.Instance.SpawnRandomWeapon();
+                return;
+            }
+            var fighting = Traverse.Create(Helper.controller).Field("fighting").GetValue<Fighting>();
+
+            var weaponWanted = byte.Parse(args[0]);
+            fighting.Dissarm();
+            fighting.NetworkPickUpWeapon(weaponWanted);
+
+            var weapon = Traverse.Create(fighting).Field("weapon").GetValue<Weapon>();
+            if (weapon != null || !string.IsNullOrEmpty(weapon.name))
+            {
+                var weaponName = weapon.name.TrimStart(' ');
+                cmd.SetOutputMsg("Gave gun: " + weaponName);
+            }
+            else
+            {
+                cmd.SetOutputMsg("Cleared gun.");
+            }
+        }
+
+        private static void KickCmd(string[] args, Command cmd)
+        {
+            if (args.Length < 1)
+            {
+                cmd.SetOutputMsg("Must select a player!");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
+            var method = args.Length > 1 ? args[1] : "1"; // Default: Client_Init
+            var targetID = Helper.GetIDFromColor(args[0]);
+            var payload = new byte[] { 0x00 };
+            var msgType = P2PPackageHandler.MsgType.KickPlayer;
+            if (!PlayerUtils.IsPlayerInLobby(targetID))
+            {
+                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
+            switch (method)
+            {
+                case "0": // Built-in
+                    msgType = P2PPackageHandler.MsgType.KickPlayer;
+                    break;
+                case "1": // Client_Init
+                    msgType = P2PPackageHandler.MsgType.ClientInit;
+                    break;
+                case "2": // Workshop_Corruption_Kick
+                    msgType = P2PPackageHandler.MsgType.WorkshopMapsLoaded;
+                    payload = new byte[] { 0x01, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+                    break;
+                case "3": // Workshop_Crash
+                    msgType = P2PPackageHandler.MsgType.WorkshopMapsLoaded;
+                    payload = new byte[524282 /* 0xFFFF * 8 + 2 */];
+                    new System.Random().NextBytes(payload);
+                    payload[0] = 0xFF;
+                    payload[1] = 0xFF;
+                    break;
+                case "4": // Invalid_Map
+                    msgType = P2PPackageHandler.MsgType.MapChange;
+                    payload = new byte[] { (byte)Helper.localNetworkPlayer.NetworkSpawnID, 0, 0 }; // Map ID: 0
+                    break;
+                default:
+                    cmd.SetLogType(Command.LogType.Warning);
+                    cmd.SetOutputMsg("Invalid method! 0:Built-in 1:Client_Init 2:Workshop_Corruption_Kick 3:Workshop_Crash 4:Invalid_Map");
+                    return;
+            }
+            P2PPackageHandler.Instance.SendP2PPacketToUser(Helper.GetSteamID(targetID), payload, msgType,
+            channel: P2PPackageHandlerPatch.GetChannelForMsgType(P2PPackageHandler.Instance, msgType));
+            cmd.SetOutputMsg("Kick player: " + Helper.GetColorFromID(targetID));
+        }
+
+        private static void KillCmd(string[] args, Command cmd)
+        {
+            if (args.Length == 0)
+            {
+                SuicideCmd(args, cmd);
+                return;
+            }
+            var targetID = Helper.GetIDFromColor(args[0]);
+            if (!PlayerUtils.IsPlayerInLobby(targetID))
+            {
+                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
+            Helper.GetNetworkPlayer(targetID).UnitWasDamaged(0, true);
+            cmd.SetOutputMsg("Killed player " + Helper.GetColorFromID(targetID));
+        }
+
+        public static void ReviveCmd(string[] args, Command cmd)
+        {
+            var reviveMethod = AccessTools.Method(typeof(GameManager), "RevivePlayer");
+            var target = MatchmakingHandler.IsNetworkMatch ?
+                Helper.localNetworkPlayer.gameObject.GetComponent<Controller>() : Helper.controller;
+            reviveMethod.Invoke(GameManager.Instance, new object[] { target, false });
+
+            cmd.SetOutputMsg("Me alive <:");
+        }
+
         // Say as specified player
         private static void SudoCmd(string[] args, Command cmd)
         {
@@ -1016,75 +1282,89 @@ namespace QOL
             }
         }
 
-        // Kills user
-        private static void SuicideCmd(string[] args, Command cmd)
+        private static void SummonCmd(string[] args, Command cmd)
         {
-            Helper.localNetworkPlayer.UnitWasDamaged(5, true, DamageType.LocalDamage, true);
+            if (MatchmakingHandler.IsNetworkMatch)
+            {
+                cmd.SetLogType(Command.LogType.Warning);
+                cmd.SetOutputMsg("Can't summon in network match!");
+                return;
+            }
+            var spawnPcEnabled = true;
+            if (args.Length > 1) spawnPcEnabled = bool.Parse(args[1]);
 
-            var phrases = ConfigHandler.DeathPhrases;
-            var randMsg = phrases[Random.Range(0, phrases.Length)];
-            cmd.SetOutputMsg(randMsg);
+            switch (args[0])
+            {
+                case "player":
+                    BotHandler.Instance.SpawnBotEnemyPlayer(spawnPcEnabled);
+                    cmd.SetOutputMsg("Spawned player");
+                    break;
+                case "bolt":
+                    BotHandler.Instance.SpawnBotEnemyBolt(spawnPcEnabled);
+                    cmd.SetOutputMsg("Spawned bolt");
+                    break;
+                case "zombie":
+                    BotHandler.Instance.SpawnBotEnemyZombie(spawnPcEnabled);
+                    cmd.SetOutputMsg("Spawned zombie");
+                    break;
+                default:
+                    cmd.SetOutputMsg("Invalid PlayerPrefab!");
+                    break;
+            }
         }
 
-        // Enables/disables the autargetStatto-translate system for chat
-        private static void TranslateCmd(string[] args, Command cmd)
+        private static void SwitchWeaponCmd(string[] args, Command cmd)
         {
             cmd.Toggle();
-            cmd.SetOutputMsg("Toggled Auto-Translate.");
+            CheatTextManager.ToggleFeature("WeaponSwitch", cmd.IsEnabled);
+            cmd.SetOutputMsg("Toggled WeaponSwitch.");
         }
-
-        // Enables/disables chat censorship
-        private static void UncensorCmd(string[] args, Command cmd)
-        {
-            cmd.Toggle();
-            cmd.SetOutputMsg("Toggled Chat De-censoring.");
-        }
-
-        // Enables UwUifier for chat messages
-        private static void UwuCmd(string[] args, Command cmd)
-        {
-            cmd.Toggle();
-            cmd.SetOutputMsg("Toggled UwUifier.");
-        }
-
-        // Outputs the mod version number to chat
-        private static void VerCmd(string[] args, Command cmd) => cmd.SetOutputMsg("QOL Mod: " + Plugin.VersionNumber);
 
         // Set the selected player win and switch to selected map
         private static void WinCmd(string[] args, Command cmd)
         {
-            var mapIndex = int.Parse(args[1]);
-            mapIndex = mapIndex == -1 ? Random.Range(1, 125) : mapIndex;
+            var unReadyAllPlayersMethod = AccessTools.Method(typeof(MultiplayerManager), "UnReadyAllPlayers");
             var sendPacketToAllMethod = AccessTools.Method(typeof(MultiplayerManager), "SendMessageToAllClients");
-            sendPacketToAllMethod.Invoke(GameManager.Instance.mMultiplayerManager, new object[]
-            {
-            new byte[] {(byte) Helper.GetIDFromColor(args[0]), 0}.Concat(BitConverter.GetBytes(mapIndex)).ToArray(),
-            P2PPackageHandler.MsgType.MapChange,
-            false,
-            0UL,
-            EP2PSend.k_EP2PSendReliable,
-            0
-            });
-        }
 
-        // Enables/Disables system for outputting the HP of the winner after each round to chat
-        private static void WinnerHpCmd(string[] args, Command cmd)
-        {
-            cmd.Toggle();
-            cmd.SetOutputMsg("Toggled WinnerHP Announcer.");
-        }
+            var levelSelector = Traverse.Create(GameManager.Instance).Field("levelSelector").GetValue<LevelSelection>();
+            var nextLevel = levelSelector.GetNextLevel();
 
-        // Enables/disables winstreak system
-        private static void WinstreakCmd(string[] args, Command cmd)
-        {
-            cmd.Toggle();
-            if (cmd.IsEnabled)
+            var targetID = Helper.localNetworkPlayer.NetworkSpawnID;
+
+            // TODO: If not host, mapIndex is always 0
+            var mapType = nextLevel.MapType; // 0: Landfall, 1: CustomLocal, 2: CustomOnline
+            var mapData = nextLevel.MapData; // [mapIndex, 0, 0, 0]
+
+            if (args.Length == 1)
             {
-                cmd.IsEnabled = true;
-                GameManager.Instance.winText.fontSize = ConfigHandler.GetEntry<int>("WinstreakFontsize");
+                if (int.TryParse(args[0], out int mapIndex)) // Only index
+                {
+                    mapIndex = mapIndex == -1 ? Random.Range(1, 125) : mapIndex;
+                    mapData = BitConverter.GetBytes(mapIndex);
+                }
+                else if (PlayerUtils.PlayerColorsParams.Contains(args[0])) // Only color
+                {
+                    targetID = Helper.GetIDFromColor(args[0]);
+                }
+            }
+            else if (args.Length > 1) // Color and index
+            {
+                mapType = 0;
+                int mapIndex = int.Parse(args[1]);
+                mapIndex = mapIndex == -1 ? Random.Range(1, 125) : mapIndex;
+                mapData = BitConverter.GetBytes(mapIndex);
             }
 
-            cmd.SetOutputMsg("Toggled Winstreak system.");
+            unReadyAllPlayersMethod.Invoke(GameManager.Instance.mMultiplayerManager, null);
+            sendPacketToAllMethod.Invoke(GameManager.Instance.mMultiplayerManager, new object[]
+            {
+                    new byte[] {(byte) targetID, mapType}.Concat(mapData).ToArray(),
+                    P2PPackageHandler.MsgType.MapChange,
+                    false,
+                    0UL,
+                    EP2PSend.k_EP2PSendReliable,
+                    0
+            });
         }
     }
 }
