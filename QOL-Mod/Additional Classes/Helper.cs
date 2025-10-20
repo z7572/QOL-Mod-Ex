@@ -78,7 +78,7 @@ namespace QOL
             var localID = GameManager.Instance.mMultiplayerManager.LocalPlayerIndex;
             //localNetworkPlayer = ClientData[localID].PlayerObject.GetComponent<NetworkPlayer>();
             LocalChat = ClientData[localID].PlayerObject.GetComponentInChildren<ChatManager>();
-
+            WeaponSelectHandler = UnityEngine.Object.FindObjectOfType<WeaponSelectionHandler>();
             Debug.Log("Assigned the localNetworkPlayer!: " + localNetworkPlayer.NetworkSpawnID);
 
             TMPText = Traverse.Create(__instance).Field("text").GetValue<TextMeshPro>();
@@ -296,8 +296,9 @@ namespace QOL
         private static int _notifyUpdateCount;
         public static IEnumerator RoutineUsed;
 
-        public static ConnectedClientData[] ClientData;
-        public static ChatManager LocalChat;
+    public static ConnectedClientData[] ClientData;
+    public static ChatManager LocalChat;
+    public static WeaponSelectionHandler WeaponSelectHandler;
 
         public static TextMeshPro TMPText;
         public static int WinStreak = 0;

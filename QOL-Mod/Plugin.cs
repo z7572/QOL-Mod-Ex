@@ -2,7 +2,6 @@
 using System.IO;
 using BepInEx;
 using HarmonyLib;
-using SimpleJson;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -129,7 +128,7 @@ namespace QOL
             modTextTMP.richText = true;
         }
 
-        public const string VersionNumber = "1.17.4"; // Version number
+        public const string VersionNumber = "1.18.1"; // Version number
         public const string Guid = "monky.plugins.QOL";
         public static string NewUpdateVerCode = "";
 
