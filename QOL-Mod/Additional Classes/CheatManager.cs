@@ -2,40 +2,44 @@
 using System.Reflection;
 using UnityEngine;
 using HarmonyLib;
-using QOL;
+
+namespace QOL;
 
 public class CheatManager : MonoBehaviour
 {
     // TODO: Add keybinds to config
-    private KeyCode nextWeaponKey = KeyCode.E;
-    private KeyCode prevWeaponKey = KeyCode.Q;
+    private const KeyCode prevWeaponKey = KeyCode.Q;
+    private const KeyCode nextWeaponKey = KeyCode.E;
     private float keyHoldTime = 0f;
     private const float HoldThreshold = 0.5f;
-    private MapWrapper _currentMap;
 
-    private ControllerHandler controllerHandler;
+    private MapWrapper _currentMap;
+    private Controller controller;
+    private Fighting fighting;
 
     private void Start()
     {
-        controllerHandler = FindObjectOfType<ControllerHandler>();
-        if (controllerHandler == null)
-        {
-            Debug.LogError("ControllerHandler not found!");
-        }
+        controller = gameObject.GetComponent<Controller>();
+        fighting = Traverse.Create(controller).Field("fighting").GetValue<Fighting>();
     }
 
     private void Update()
     {
-        // Switch weapon
-        if (ChatCommands.CmdDict["switchweapon"].IsEnabled && !ChatManager.isTyping && controllerHandler != null)
+        if (controller != null && !ChatManager.isTyping && !PauseManager.isPaused)
         {
-            foreach (Controller controller in controllerHandler.ActivePlayers)
+            if (ChatCommands.CmdDict["scrollattack"].IsEnabled)
             {
-                if (!controller.HasControl || controller.isAI) continue;
+                if (Input.GetAxis("Mouse ScrollWheel") != 0f)
+                {
+                    if (fighting.weapon == null || !fighting.weapon.isEnergyBased)
+                    {
+                        controller.Attack();
+                    }
+                }
+            }
 
-                var fighting = Traverse.Create(controller).Field("fighting").GetValue<Fighting>();
-                if (fighting == null) continue;
-
+            if (ChatCommands.CmdDict["switchweapon"].IsEnabled)
+            {
                 if (Input.GetKey(prevWeaponKey))
                 {
                     keyHoldTime += Time.deltaTime;
@@ -43,9 +47,9 @@ public class CheatManager : MonoBehaviour
                     {
                         if (fighting.CurrentWeaponIndex != 0)
                         {
-                            Helper.SwitcherWeaponIndex = fighting.CurrentWeaponIndex; // Update current weapon index(except for punch)
+                            CheatHelper.SwitcherWeaponIndex = fighting.CurrentWeaponIndex; // Update current weapon index(except for punch)
                         }
-                        if (Helper.SwitcherWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
+                        if (CheatHelper.SwitcherWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
                         {
                             SwitchWeapon(0, fighting); // Switch to thrown weapon
                         }
@@ -67,9 +71,9 @@ public class CheatManager : MonoBehaviour
                     {
                         if (fighting.CurrentWeaponIndex != 0)
                         {
-                            Helper.SwitcherWeaponIndex = fighting.CurrentWeaponIndex;
+                            CheatHelper.SwitcherWeaponIndex = fighting.CurrentWeaponIndex;
                         }
-                        if (Helper.SwitcherWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
+                        if (CheatHelper.SwitcherWeaponIndex != 0 && fighting.CurrentWeaponIndex == 0)
                         {
                             SwitchWeapon(0, fighting);
                         }
@@ -77,7 +81,7 @@ public class CheatManager : MonoBehaviour
                         {
                             SwitchWeapon(1, fighting);
                         }
-                        Helper.SwitcherWeaponIndex = fighting.CurrentWeaponIndex;
+                        CheatHelper.SwitcherWeaponIndex = fighting.CurrentWeaponIndex;
                     }
                 }
                 else if (Input.GetKeyUp(nextWeaponKey))
@@ -104,19 +108,19 @@ public class CheatManager : MonoBehaviour
 
         int weaponCount = weapons.childCount + 1; // +1 for the empty slot(punch)
 
-        Helper.SwitcherWeaponIndex += direction;
+        CheatHelper.SwitcherWeaponIndex += direction;
 
-        if (Helper.SwitcherWeaponIndex < 0)
+        if (CheatHelper.SwitcherWeaponIndex < 0)
         {
-            Helper.SwitcherWeaponIndex = weaponCount - 1;
+            CheatHelper.SwitcherWeaponIndex = weaponCount - 1;
         }
-        else if (Helper.SwitcherWeaponIndex >= weaponCount)
+        else if (CheatHelper.SwitcherWeaponIndex >= weaponCount)
         {
-            Helper.SwitcherWeaponIndex = 0;
+            CheatHelper.SwitcherWeaponIndex = 0;
         }
 
         fighting.Dissarm();
-        fighting.NetworkPickUpWeapon((byte)Helper.SwitcherWeaponIndex);
+        fighting.NetworkPickUpWeapon((byte)CheatHelper.SwitcherWeaponIndex);
 
         var weapon = Traverse.Create(fighting).Field("weapon").GetValue<Weapon>();
         if (weapon == null || string.IsNullOrEmpty(weapon.name)) return;
@@ -132,7 +136,7 @@ public class CheatManager : MonoBehaviour
 
     private void ToggleFly()
     {
-        Helper.controller.canFly = ChatCommands.CmdDict["fly"].IsEnabled;
+        controller.canFly = ChatCommands.CmdDict["fly"].IsEnabled;
     }
 
     private void ReapplyToggleOptions()

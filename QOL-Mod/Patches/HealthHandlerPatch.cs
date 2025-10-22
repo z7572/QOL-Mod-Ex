@@ -1,25 +1,25 @@
-﻿using HarmonyLib;
+﻿using System;
+using HarmonyLib;
 using UnityEngine;
 
-namespace QOL
+namespace QOL.Patches;
+
+[HarmonyPatch]
+class HealthHandlerPatch
 {
-    class HealthHandlerPatch
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(BodyPart), "TakeDamage")]
+    [HarmonyPatch(typeof(BodyPart), "TakeDamageWithParticle", new Type[] { typeof(float), typeof(Vector3), typeof(Vector3), typeof(Controller), typeof(DamageType) })]
+    [HarmonyPatch(typeof(BodyPart), "TakeDamageWithParticle", new Type[] { typeof(float), typeof(Vector3), typeof(Vector3), typeof(bool), typeof(Controller) })]
+    [HarmonyPatch(typeof(HealthHandler), "TakeDamage", new Type[] { typeof(float), typeof(byte), typeof(bool) })]
+    [HarmonyPatch(typeof(HealthHandler), "TakeDamage", new Type[] { typeof(float), typeof(Controller), typeof(DamageType), typeof(bool), typeof(Vector3), typeof(Vector3) })]
+    public static bool Prefix(object __instance)
     {
-        public static void Patch(Harmony harmonyInstance)
-        {
-            var takeDamageMethod = AccessTools.Method(typeof(HealthHandler), "TakeDamage",
-                new System.Type[] { typeof(float), typeof(Controller), typeof(DamageType), typeof(bool), typeof(Vector3), typeof(Vector3) });
-            var takeDamageByPlayerMethod = AccessTools.Method(typeof(HealthHandler), "TakeDamage",
-                new System.Type[] { typeof(float), typeof(byte), typeof(bool) });
-            var takeDamageMethodPrefix = new HarmonyMethod(typeof(HealthHandlerPatch).GetMethod(nameof(TakeDamageMethodPrefix)));
-
-            harmonyInstance.Patch(takeDamageMethod, prefix: takeDamageMethodPrefix);
-            harmonyInstance.Patch(takeDamageByPlayerMethod, prefix: takeDamageMethodPrefix);
-        }
-
-        public static bool TakeDamageMethodPrefix(Fighting __instance)
+        var controller = Traverse.Create(__instance).Field("controller").GetValue<Controller>();
+        if (controller == Helper.controller)
         {
             return !ChatCommands.CmdDict["god"].IsEnabled;
         }
+        return true;
     }
 }

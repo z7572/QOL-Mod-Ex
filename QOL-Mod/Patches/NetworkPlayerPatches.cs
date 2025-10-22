@@ -2,83 +2,94 @@
 using HarmonyLib;
 using UnityEngine;
 
-namespace QOL
+namespace QOL.Patches;
+
+internal class NetworkPlayerPatch
 {
-
-    internal class NetworkPlayerPatch
+    public static void Patch(Harmony harmonyInstance) // NetworkPlayer methods to patch with the harmony instance
     {
-        public static void Patch(Harmony harmonyInstance) // NetworkPlayer methods to patch with the harmony instance
-        {
+        var createNetworkPositionPackageMethod = AccessTools.Method(typeof(NetworkPlayer), "CreateNetworkPositionPackage");
+        var createNetworkPositionPackagePostfix = new HarmonyMethod(typeof(NetworkPlayerPatch)
+            .GetMethod(nameof(CreateNetworkPositionPackagePostfix)));
+        harmonyInstance.Patch(createNetworkPositionPackageMethod, postfix: createNetworkPositionPackagePostfix);
 
-            var syncClientChatMethod = AccessTools.Method(typeof(NetworkPlayer), "SyncClientChat");
-            var syncClientChatMethodPrefix = new HarmonyMethod(typeof(NetworkPlayerPatch)
-                .GetMethod(nameof(SyncClientChatMethodPrefix)));
-            harmonyInstance.Patch(syncClientChatMethod, prefix: syncClientChatMethodPrefix);
+        var syncClientChatMethod = AccessTools.Method(typeof(NetworkPlayer), "SyncClientChat");
+        var syncClientChatMethodPrefix = new HarmonyMethod(typeof(NetworkPlayerPatch)
+            .GetMethod(nameof(SyncClientChatMethodPrefix)));
+        harmonyInstance.Patch(syncClientChatMethod, prefix: syncClientChatMethodPrefix);
+    }
+
+    public static void CreateNetworkPositionPackagePostfix(ref NetworkPlayer.NetworkPositionPackage __result)
+    {
+        if (ChatCommands.CmdDict["invisible"].IsEnabled)
+        {
+            __result.Position = new ShortVector2(-2000, 0);
+            __result.Rotation = new ByteVector2(0, 0);
         }
+    }
 
-        public static bool SyncClientChatMethodPrefix(ref byte[] data, NetworkPlayer __instance)
+    public static bool SyncClientChatMethodPrefix(ref byte[] data, NetworkPlayer __instance)
+    {
+        if (Helper.MutedPlayers.Contains(__instance.NetworkSpawnID))
         {
-            if (Helper.MutedPlayers.Contains(__instance.NetworkSpawnID))
-            {
-                return false;
-            }
-
-            if (!ChatCommands.CmdDict["translate"].IsEnabled) return true;
-
-            TranslateMessage(data, __instance);
             return false;
         }
 
-        // TODO: Refactor and expand upon this
-        // Checks if auto-translation is enabled, if so then translate it
-        private static void TranslateMessage(byte[] data, NetworkPlayer __instance)
+        if (!ChatCommands.CmdDict["translate"].IsEnabled) return true;
+
+        TranslateMessage(data, __instance);
+        return false;
+    }
+
+    // TODO: Refactor and expand upon this
+    // Checks if auto-translation is enabled, if so then translate it
+    private static void TranslateMessage(byte[] data, NetworkPlayer __instance)
+    {
+        var textToTranslate = Encoding.UTF8.GetString(data);
+        Debug.Log("Got message: " + textToTranslate);
+
+        var authKey = ConfigHandler.GetEntry<string>("AutoAuthTranslationsAPIKey");
+        var usingKey = !string.IsNullOrEmpty(authKey);
+
+        var mHasLocalControl = Traverse.Create(__instance).Field("mHasLocalControl").GetValue<bool>();
+        var mLocalChatManager = AccessTools.StaticFieldRefAccess<ChatManager>(typeof(NetworkPlayer),
+            "mLocalChatManager");
+        Debug.Log("mLocalChatManager : " + mLocalChatManager);
+        Debug.Log("mHasLocalControl : " + mHasLocalControl);
+
+        if (mHasLocalControl)
         {
-            var textToTranslate = Encoding.UTF8.GetString(data);
-            Debug.Log("Got message: " + textToTranslate);
-
-            var authKey = ConfigHandler.GetEntry<string>("AutoAuthTranslationsAPIKey");
-            var usingKey = !string.IsNullOrEmpty(authKey);
-
-            var mHasLocalControl = Traverse.Create(__instance).Field("mHasLocalControl").GetValue<bool>();
-            var mLocalChatManager = AccessTools.StaticFieldRefAccess<ChatManager>(typeof(NetworkPlayer),
-                "mLocalChatManager");
-            Debug.Log("mLocalChatManager : " + mLocalChatManager);
-            Debug.Log("mHasLocalControl : " + mHasLocalControl);
-
-            if (mHasLocalControl)
+            if (usingKey)
             {
-                if (usingKey)
-                {
-                    __instance.StartCoroutine(AuthTranslate.TranslateText("auto",
-                        "en",
-                        textToTranslate,
-                        s => mLocalChatManager.Talk(s)));
-
-                    return;
-                }
-
-                __instance.StartCoroutine(Translate.Process("en",
+                __instance.StartCoroutine(AuthTranslate.TranslateText("auto",
+                    "en",
                     textToTranslate,
                     s => mLocalChatManager.Talk(s)));
 
                 return;
             }
 
-            var mChatManager = Traverse.Create(__instance).Field("mChatManager").GetValue<ChatManager>();
+            __instance.StartCoroutine(Translate.Process("en",
+                textToTranslate,
+                s => mLocalChatManager.Talk(s)));
 
-            if (!usingKey)
-            {
-                __instance.StartCoroutine(Translate.Process("en",
-                    textToTranslate,
-                    s => mChatManager.Talk(s)));
+            return;
+        }
 
-                return;
-            }
+        var mChatManager = Traverse.Create(__instance).Field("mChatManager").GetValue<ChatManager>();
 
-            __instance.StartCoroutine(AuthTranslate.TranslateText("auto",
-                "en",
+        if (!usingKey)
+        {
+            __instance.StartCoroutine(Translate.Process("en",
                 textToTranslate,
                 s => mChatManager.Talk(s)));
+
+            return;
         }
+
+        __instance.StartCoroutine(AuthTranslate.TranslateText("auto",
+            "en",
+            textToTranslate,
+            s => mChatManager.Talk(s)));
     }
 }

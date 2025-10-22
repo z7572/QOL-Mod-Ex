@@ -4,9 +4,14 @@
     <TargetFramework>net35</TargetFramework>
     <AssemblyName>QOL-Mod</AssemblyName>
     <Description>A mod that offers quality-of-life improvements and additions to Stick Fight: The Game.</Description>
-    <Version>1.18.0</Version>
-    <LangVersion>preview</LangVersion>
+    <Version>1.19.0</Version>
+    <LangVersion>latest</LangVersion>
     <RootNamespace>QOL</RootNamespace>
+    <Authors>z7572 (fork)</Authors>
+    <Product />
+    <Company />
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
+    <Configurations>Release</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -42,13 +47,13 @@
   
   <ItemGroup>
 	  <Reference Include="Assembly-CSharp">
-	    <HintPath>..\..\..\StickFight_Data\Managed\Assembly-CSharp.dll</HintPath>
+	    <HintPath>..\..\Original\Assembly-CSharp.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Assembly-CSharp-firstpass">
-	    <HintPath>..\..\..\StickFight_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+		  <HintPath>..\..\..\StickFight_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Lidgren.Network">
-	    <HintPath>..\..\..\StickFight_Data\Managed\Lidgren.Network.dll</HintPath>
+		  <HintPath>..\..\..\StickFight_Data\Managed\Lidgren.Network.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Mono.Security">
 		  <HintPath>..\..\..\StickFight_Data\Managed\Mono.Security.dll</HintPath>
@@ -69,4 +74,8 @@
 		  <HintPath>..\..\..\StickFight_Data\Managed\UnityEngine.UI.dll</HintPath>
 	  </Reference>
   </ItemGroup>
+  
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy /Y $(TargetPath) $(ProjectDir)\..\..\..\BepInEx\plugins\$(TargetName)\$(TargetFileName)&#xD;&#xA;" />
+  </Target>
 </Project>

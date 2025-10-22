@@ -3,88 +3,85 @@ using HarmonyLib;
 using TMPro;
 using UnityEngine;
 
-namespace QOL {
+namespace QOL.Patches;
 
-    class OnlinePlayerUIPatch
+[HarmonyPatch]
+class OnlinePlayerUIPatch
+{
+    public static void Patch(Harmony harmonyInstance)
     {
-        public static void Patch(Harmony harmonyInstance)
+        var updateMethod = AccessTools.Method(typeof(OnlinePlayerUI), "Update");
+        var updateMethodPrefix = new HarmonyMethod(typeof(OnlinePlayerUIPatch)
+            .GetMethod(nameof(UpdateMethodPrefix)));
+        harmonyInstance.Patch(updateMethod, prefix: updateMethodPrefix);
+
+        var populateMethod = AccessTools.Method(typeof(OnlinePlayerUI), "Populate");
+        var populateMethodPrefix = new HarmonyMethod(typeof(OnlinePlayerUIPatch)
+            .GetMethod(nameof(PopulateMethodPrefix)));
+        harmonyInstance.Patch(populateMethod, prefix: populateMethodPrefix);
+    }
+
+    public static bool UpdateMethodPrefix(ref bool ___mIsStaying, ref ConnectedClientData[] ___mClients,
+        ref TextMeshProUGUI[] ___mPlayerTexts)
+    {
+        if (!___mIsStaying) return false;
+
+        for (var i = 0; i < ___mClients.Length; i++)
         {
-            var updateMethod = AccessTools.Method(typeof(OnlinePlayerUI), "Update");
-            var updateMethodPrefix = new HarmonyMethod(typeof(OnlinePlayerUIPatch)
-                .GetMethod(nameof(UpdateMethodPrefix)));
-            harmonyInstance.Patch(updateMethod, prefix: updateMethodPrefix);
+            var client = ___mClients[i];
 
-            var populateMethod = AccessTools.Method(typeof(OnlinePlayerUI), "Populate");
-            var populateMethodPrefix = new HarmonyMethod(typeof(OnlinePlayerUIPatch)
-                .GetMethod(nameof(PopulateMethodPrefix)));
-            harmonyInstance.Patch(populateMethod, prefix: populateMethodPrefix);
-        }
+            if (client == null || !client.ClientID.IsValid() || client.PlayerObject == null)
+                ___mPlayerTexts[i].text = string.Empty;
 
-        public static bool UpdateMethodPrefix(ref bool ___mIsStaying, ref ConnectedClientData[] ___mClients,
-            ref TextMeshProUGUI[] ___mPlayerTexts)
-        {
-            if (!___mIsStaying) return false;
-
-            for (var i = 0; i < ___mClients.Length; i++)
+            else
             {
-                var client = ___mClients[i];
+                if (ConfigHandler.IsCustomName && i == Helper.networkPlayer.NetworkSpawnID)
+                    ___mPlayerTexts[i].text = ConfigHandler.CustomName;
 
-                if (client == null || !client.ClientID.IsValid() || client.PlayerObject == null)
-                    ___mPlayerTexts[i].text = "";
+                else ___mPlayerTexts[i].text = client.PlayerName;
 
-                else
-                {
-                    if (ConfigHandler.IsCustomName && i == Helper.localNetworkPlayer.NetworkSpawnID)
-                        ___mPlayerTexts[i].text = ConfigHandler.CustomName;
+                var component = ___mPlayerTexts[i].GetComponent<CodeStateAnimation>();
+                var gameObject = client.PlayerObject.GetComponentInChildren<Torso>().gameObject;
+                component.state1 = true;
 
-                    else ___mPlayerTexts[i].text = client.PlayerName;
+                if (gameObject == null) break;
+                component.transform.position = gameObject.transform.position + Vector3.up * 1.5f;
 
-                    var component = ___mPlayerTexts[i].GetComponent<CodeStateAnimation>();
-                    var gameObject = client.PlayerObject.GetComponentInChildren<Torso>().gameObject;
-                    component.state1 = true;
-
-                    if (gameObject == null) break;
-                    component.transform.position = gameObject.transform.position + Vector3.up * 1.5f;
-
-                    if (gameObject == null) component.state1 = false;
-                }
+                if (gameObject == null) component.state1 = false;
             }
-
-            return false;
         }
 
-        public static bool PopulateMethodPrefix(ref bool ___mIsStaying, ref ConnectedClientData[] ___mClients,
-            ref TextMeshProUGUI[] ___mPlayerTexts, OnlinePlayerUI __instance)
+        return false;
+    }
+
+    public static bool PopulateMethodPrefix(ref bool ___mIsStaying, ref ConnectedClientData[] ___mClients,
+        ref TextMeshProUGUI[] ___mPlayerTexts, OnlinePlayerUI __instance)
+    {
+        if (___mClients == null) return false;
+
+        ___mIsStaying = false;
+        for (var i = 0; i < ___mClients.Length; i++)
         {
-            if (___mClients == null) return false;
+            var client = ___mClients[i];
 
-            ___mIsStaying = false;
-            for (var i = 0; i < ___mClients.Length; i++)
+            if (client == null || !client.ClientID.IsValid() || client.PlayerObject == null)
+                ___mPlayerTexts[i].text = string.Empty;
+
+            else
             {
-                var client = ___mClients[i];
+                if (ConfigHandler.IsCustomName && i == Helper.networkPlayer.NetworkSpawnID)
+                    ___mPlayerTexts[i].text = ConfigHandler.CustomName;
 
-                if (client == null || !client.ClientID.IsValid() || client.PlayerObject == null)
-                    ___mPlayerTexts[i].text = "";
+                else ___mPlayerTexts[i].text = client.PlayerName + client.Ping;
 
-                else
-                {
-                    if (ConfigHandler.IsCustomName && i == Helper.localNetworkPlayer.NetworkSpawnID)
-                        ___mPlayerTexts[i].text = ConfigHandler.CustomName;
+                var showTextMethod = AccessTools.Method(typeof(OnlinePlayerUI), "ShowText");
 
-                    else ___mPlayerTexts[i].text = client.PlayerName + client.Ping;
-
-                    var showTextMethod = AccessTools.Method(typeof(OnlinePlayerUI), "ShowText");
-
-                    __instance.StartCoroutine((IEnumerator)showTextMethod.Invoke(__instance,
-                        new object[]
-                        {
-                        ___mPlayerTexts[i].GetComponent<CodeStateAnimation>(),
-                        client.PlayerObject.GetComponentInChildren<Torso>().gameObject
-                        }));
-                }
+                __instance.StartCoroutine((IEnumerator)showTextMethod.Invoke(__instance,
+                    [___mPlayerTexts[i].GetComponent<CodeStateAnimation>(),
+                    client.PlayerObject.GetComponentInChildren<Torso>().gameObject]));
             }
-
-            return false;
         }
+
+        return false;
     }
 }

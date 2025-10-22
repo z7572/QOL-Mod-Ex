@@ -3,7 +3,7 @@
     "QOL-Mod": {
       "commandName": "Executable",
       "executablePath": "C:\\Windows\\System32\\cmd.exe",
-      "commandLineArgs": "/c \"copy /Y \"QOL-Mod.dll\" \"D:\\SteamLibrary\\steamapps\\common\\StickFightTheGame\\BepInEx\\plugins\\QOL-Mod\\QOL-Mod.dll\" && start steam://rungameid/674940\"",
+      "commandLineArgs": "/c \"start steam://rungameid/674940\"",
       "nativeDebugging": false
     }
   }
