@@ -960,6 +960,7 @@ public static class ChatCommands
             case "randomize":
                 var randomizeArrayMethod = AccessTools.Method(typeof(MusicHandler), "RandomizeArray");
                 musicHandler.myMusic = (MusicClip[])randomizeArrayMethod.Invoke(musicHandler, [musicHandler.myMusic]);
+                cmd.IsEnabled = true;
                 cmd.SetOutputMsg("Randomized music.");
                 return;
             default:

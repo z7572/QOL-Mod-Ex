@@ -20,8 +20,8 @@ public class EdgeArrowManager : MonoBehaviour
     private Camera mainCamera;
     private Rigidbody[] rigs;
 
-    private GameObject parentObject;
-    private GameObject spriteObject;
+    private GameObject parentObj;
+    private GameObject spriteObj;
 
     private void Awake()
     {
@@ -34,17 +34,17 @@ public class EdgeArrowManager : MonoBehaviour
     {
         rigs = Traverse.Create(standing).Field("rigs").GetValue<Rigidbody[]>();
 
-        parentObject = new GameObject("EdgeArrow");
-        parentObject.transform.SetParent(transform);
-        parentObject.SetActive(false);
+        parentObj = new GameObject("EdgeArrow");
+        parentObj.transform.SetParent(transform);
+        parentObj.SetActive(false);
 
-        spriteObject = new GameObject("Sprite");
-        spriteObject.transform.SetParent(parentObject.transform);
-        spriteObject.transform.localPosition = new Vector3(-0.2f, 0f, 0f);
-        spriteObject.transform.rotation = Quaternion.Euler(0f, 0f, -90f);
-        spriteObject.transform.localScale = new Vector3(baseArrowSize, baseArrowSize * Mathf.Sqrt(1f / 3f), baseArrowSize);
+        spriteObj = new GameObject("Sprite");
+        spriteObj.transform.SetParent(parentObj.transform);
+        spriteObj.transform.localPosition = new Vector3(-0.2f, 0f, 0f);
+        spriteObj.transform.rotation = Quaternion.Euler(0f, 0f, -90f);
+        spriteObj.transform.localScale = new Vector3(baseArrowSize, baseArrowSize * Mathf.Sqrt(1f / 3f), baseArrowSize);
 
-        var spriteRenderer = spriteObject.AddComponent<SpriteRenderer>();
+        var spriteRenderer = spriteObj.AddComponent<SpriteRenderer>();
         var arrowSprite = Resources.FindObjectsOfTypeAll<Sprite>().Where(s => s.name == "triangle-xxl").FirstOrDefault();
         var materials = MultiplayerManagerAssets.Instance.Colors;
 
@@ -61,10 +61,10 @@ public class EdgeArrowManager : MonoBehaviour
             Debug.LogError("rigidbodies is null!!!");
             rigs = Traverse.Create(gameObject.GetComponent<Standing>()).Field("rigs").GetValue<Rigidbody[]>();
         }
-        if (parentObject == null)
+        if (parentObj == null)
         {
             Debug.LogError("parentObject is null!!!");
-            parentObject = transform.Find("EdgeArrow").gameObject;
+            parentObj = transform.Find("EdgeArrow").gameObject;
         }
 
         var isPlayerVisible = AreAnyRigidbodiesOnScreen();
@@ -74,7 +74,7 @@ public class EdgeArrowManager : MonoBehaviour
             PositionArrowAtScreenEdge();
         }
 
-        parentObject.SetActive(!isPlayerVisible);
+        parentObj.SetActive(!isPlayerVisible);
     }
 
     private bool AreAnyRigidbodiesOnScreen()
@@ -125,8 +125,8 @@ public class EdgeArrowManager : MonoBehaviour
         float scaleRatio = 1f - Mathf.Clamp01(distance / maxDistance);
         float currentScale = Mathf.Lerp(minScale, maxScale, scaleRatio);
 
-        parentObject.transform.position = arrowWorldPos;
-        parentObject.transform.rotation = Quaternion.Euler(0f, 90f, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
-        parentObject.transform.localScale = Vector3.one * currentScale;
+        parentObj.transform.position = arrowWorldPos;
+        parentObj.transform.rotation = Quaternion.Euler(0f, 90f, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
+        parentObj.transform.localScale = Vector3.one * currentScale;
     }
 }

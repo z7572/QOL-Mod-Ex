@@ -41,6 +41,8 @@ public class HPBarManager : MonoBehaviour
 
         var newObj = new GameObject($"Player{playerID + 1}HPText");
         TMPtext = newObj.AddComponent<TextMeshProUGUI>();
+        newObj.SetActive(ChatCommands.CmdDict["showhp"].IsEnabled);
+        Helper.HpBars[playerID] = newObj;
 
         // TextMeshProUGUI texts must under the canvas to display
         newObj.transform.SetParent(canvas.transform);
@@ -51,8 +53,6 @@ public class HPBarManager : MonoBehaviour
         TMPtext.color = colorMat.color;
         TMPtext.font = Resources.Load<TMP_FontAsset>("fonts & materials/MiSans SDF") ?? // SFTGCNText
                        Resources.Load<TMP_FontAsset>("fonts & materials/Anton SDF") ?? TMPtext.font;
-        Helper.HpBars[playerID] = newObj;
-        newObj.SetActive(ChatCommands.CmdDict["showhp"].IsEnabled);
         bossBar = Traverse.Create(setMovementAbility).Field("anim").GetValue<CodeStateAnimation>();
     }
 

@@ -100,8 +100,6 @@ class ControllerPatches
             Helper.controller = __instance;
             __instance.gameObject.AddComponent<CheatManager>();
             Debug.Log("Added CheatManager");
-            //__instance.gameObject.AddComponent<EdgeArrowManager>();
-            //Debug.Log("Added EdgeArrowManager (Me)");
             var barsHandler = Object.FindObjectOfType<BarsHandler>();
             if (barsHandler != null)
             {

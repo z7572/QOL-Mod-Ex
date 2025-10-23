@@ -129,7 +129,7 @@ public class Plugin : BaseUnityPlugin
         canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasScaler.referenceResolution = new Vector2(1920, 1080);
 
-        modTextTMP.text = $"<color=red>QOL Mod</color> <color=white>v{VersionNumber}</color> <color=#0bf>Ex by z7572";
+        modTextTMP.text = $"<color=red>Monky's QOL Mod</color> <color=#0bf>Ex</color> <color=white>v{VersionNumber}</color> <color=#0bf>z7572";
 
         //modTextTMP.font = Resources.Load<TMP_FontAsset>("fonts & materials/roboto-bold sdf");
         modTextTMP.fontSizeMax = 25;

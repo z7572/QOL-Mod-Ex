@@ -54,7 +54,6 @@ public class ChatManagerPatches
         return false;
     }
 
-    // TODO: Remove unneeded parameters and perhaps this entire method
     public static void StartMethodPostfix(ChatManager __instance, ref TMP_InputField ___chatField, NetworkPlayer ___m_NetworkPlayer)
     {
         var playerID = ushort.MaxValue;
