@@ -264,20 +264,28 @@ public class Helper
     [HarmonyReversePatch]
     private static int GetChannelForMsgType(object instance, P2PPackageHandler.MsgType msgType) => 0;
 
-    [HarmonyPatch(typeof(MultiplayerManager), "SendMessageToAllClients")]
-    [HarmonyReversePatch]
     private static void SendMessageToAllClients(object instance, byte[] data, P2PPackageHandler.MsgType type, bool ignoreServer = false,
-        ulong ignoreUserID = 0, EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = 0) { }
+        ulong ignoreUserID = 0, EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = 0)
+    {
+        var sendPacketToAllMethod = AccessTools.Method(typeof(MultiplayerManager), "SendMessageToAllClients");
+        sendPacketToAllMethod.Invoke(instance, [data, type, ignoreServer, ignoreUserID, sendMethod, channel]);
+    }
 
     public static void SendMessageToAllClients(byte[] data, P2PPackageHandler.MsgType type, bool ignoreServer = false,
         ulong ignoreUserID = 0, EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = 0)
-        => SendMessageToAllClients(gameManager.mMultiplayerManager, data, type, ignoreServer, ignoreUserID, sendMethod,
-            channel == 0 ? GetChannelForMsgType(P2PPackageHandler.Instance, type) : channel);
+    {
+        SendMessageToAllClients(gameManager.mMultiplayerManager, data, type, ignoreServer, ignoreUserID, sendMethod,
+                channel == 0 ? GetChannelForMsgType(P2PPackageHandler.Instance, type) : channel);
+        Debug.Log($"[QOL] Sent message to all clients of type {type} and data: {data.ToByteString()}");
+    }
 
     public static void SendP2PPacketToUser(CSteamID clientID, byte[] data, P2PPackageHandler.MsgType type,
         EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = 0)
-        => P2PPackageHandler.Instance.SendP2PPacketToUser(clientID, data, type, sendMethod,
-            channel == 0 ? GetChannelForMsgType(P2PPackageHandler.Instance, type) : channel);
+    {
+        P2PPackageHandler.Instance.SendP2PPacketToUser(clientID, data, type, sendMethod,
+                channel == 0 ? GetChannelForMsgType(P2PPackageHandler.Instance, type) : channel);
+        Debug.Log($"[QOL] Sent message to user {clientID} of type {type} and data: {data.ToByteString()}");
+    }
 
     public static void InitMusic(GameManager __instance)
     {
