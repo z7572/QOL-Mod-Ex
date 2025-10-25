@@ -402,6 +402,7 @@ public class Helper
     public static List<GameObject> SpawnedWings = [];
     public static GameObject[] HpBars = new GameObject[4];
     public static Scene LoadedScene;
+    public static Material skyBoxMat;
 
     //public static readonly string[] OuchPhrases = Plugin.ConfigOuchPhrases.Value.Split(' ');
     //private static readonly bool NameResize = Plugin.ConfigNoResize.Value;

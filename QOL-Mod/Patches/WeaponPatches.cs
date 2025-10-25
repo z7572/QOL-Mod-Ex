@@ -103,6 +103,8 @@ class WeaponPatches
         return playerID switch
         {
             // Based on _EmissionColor (PropertyID = 58) == Color(1f, 0.7059f, 0.1765f)
+            // And UnityEngine.PostProcessingProfile is Default(Main Camera) + Menu(Camera_Pause)
+            // And MainScene's RenderSettings (goto LevelCreatorPatches)
             0 => new Color(0.8f, 0.8f, 0f), // Yellow
             1 => new Color(-0.5f, 0.5f, 2f), // Blue
             2 => new Color(1.4f, 0f, 0.4f), // Red (light)
@@ -190,14 +192,18 @@ class WeaponPatches
                             break;
 
                         case "battery":
-                            var controller = Helper.controllerHandler.ActivePlayers[playerID];
+                            var controller = Helper.controller; // In MapEditor
+                            if (Helper.controllerHandler != null)
+                            {
+                                controller = Helper.controllerHandler.ActivePlayers[playerID]; // In Lobby
+                            }
                             var fighting = Traverse.Create(controller).Field("fighting").GetValue<Fighting>();
                             var weapon = Traverse.Create(fighting).Field("weapon").GetValue<Weapon>();
 
                             var startBullets = weapon.startBullets;
                             var bulletsLeft = Traverse.Create(fighting).Field("bulletsLeft").GetValue<int>();
 
-                            float ratio = (float)bulletsLeft / startBullets;
+                            var ratio = (float)bulletsLeft / startBullets;
 
                             var green = new HSBColor(100f / 360f, 1f, 1f);
                             var yellow = new HSBColor(50f / 360f, 1f, 1f);

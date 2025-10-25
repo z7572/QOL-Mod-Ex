@@ -45,6 +45,14 @@ class GameManagerPatches
         __instance.gameObject.AddComponent<CheatTextManager>();
         Helper.InitMusic(__instance);
         Traverse.Create(__instance.mMultiplayerManager).Field("mGameUI").GetValue<OnlinePlayerUI>().Init();
+        foreach (var mat in Resources.FindObjectsOfTypeAll<Material>())
+        {
+            if (mat.name == "blueSky")
+            {
+                UnityEngine.Object.DontDestroyOnLoad(mat);
+                Helper.skyBoxMat = mat;
+            }
+        }
     }
 
     public static void NetworkAllPlayersDiedButOnePostfix(ref byte winner, GameManager __instance)
