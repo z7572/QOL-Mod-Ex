@@ -76,7 +76,8 @@ public static class ChatCommands
         }),*/
         // Cheat cmds below
         new Command("afk", AfkCmd, 0, true).MarkAsToggle(), // TODO: Assign AI to player and auto turn off when anyKeyDown
-        new Command("pkg", PkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
+        new Command("logpkg", LogPkgCmd, 0, true, Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList()).MarkAsToggle(),
+        new Command("dmgpkg", DmgPkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
         new Command("firepkg", FirePkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
         new Command("bullethell", BulletHellCmd, 0, true, PlayerUtils.PlayerColorsParamsWithAll),
         new Command("bulletring", BulletRingCmd, 0, true),
@@ -791,6 +792,46 @@ public static class ChatCommands
         targetCmd.IsPublic = true;
         cmd.SetOutputMsg("Toggled public logging for " + targetCmd.Name + ".");
         SaveCmdVisibilityStates();
+    }   
+
+    // Enables/disables P2P package logging for specified types or all if none specified
+    private static void LogPkgCmd(string[] args, Command cmd)
+    {
+        var allEnumNames = Enum.GetNames(typeof(P2PPackageHandler.MsgType));
+        var validNames = new List<string>();
+        if (args.Length > 0)
+        {
+            foreach (var arg in args)
+            {
+                var matchedName = allEnumNames.FirstOrDefault(n => n.ToLower() == arg.ToLower());
+                if (matchedName != null)
+                {
+                    validNames.Add(matchedName);
+                }
+                else
+                {
+                    cmd.SetOutputMsg($"Invalid type: {arg}");
+                    return;
+                }
+            }
+        }
+
+        var option = validNames.Count > 0 ? string.Join(" ", validNames.ToArray()) : null;
+
+        cmd.Toggle(option);
+        CheatTextManager.ToggleFeature("P2PPackageLogger", cmd.IsEnabled, option ?? "All");
+
+        if (cmd.IsEnabled)
+        {
+            string msg = args.Length > 0
+                ? $"Enabled P2P logging for {cmd.Option}"
+                : "Enabled P2P logging for all types";
+            cmd.SetOutputMsg(msg);
+        }
+        else
+        {
+            cmd.SetOutputMsg("Disabled P2P logging");
+        }
     }
 
     // Enables/Disables chat messages always being sent in lowercase
@@ -1231,7 +1272,7 @@ public static class ChatCommands
     //                                    Cheat command methods below                                      
     // ****************************************************************************************************
 
-    private static void PkgCmd(string[] args, Command cmd)
+    private static void DmgPkgCmd(string[] args, Command cmd)
     {
         var help = "Usage: target";
         if (args.Length < 1)
@@ -1247,7 +1288,8 @@ public static class ChatCommands
         {
             for (var j = 0; j < 1000; j++)
             {
-                CheatHelper.DamagePackage(0, false, Helper.GetIDFromColor(playerID), playParticles: true);
+                var direction = new Vector2(Random.Range(-1f, 1f), Random.Range(-1f, 1f));
+                CheatHelper.DamagePackage(0, false, Helper.GetIDFromColor(playerID), playParticles: true, particleDirection: direction);
             }
             yield return null;
         }
@@ -1257,14 +1299,14 @@ public static class ChatCommands
     private static void FirePkgCmd(string[] args, Command cmd)
     {
         var help = "Usage: target, x, y, Vx, Vy, (weaponIndex), (isLocalDisplay)";
-        if (args.Length < 6)
+        if (args.Length < 5)
         {
             cmd.SetLogType(Command.LogType.Warning);
             cmd.SetOutputMsg(help);
             return;
         }
 
-        var playerID = ushort.MaxValue;
+        var playerID = ushort.MaxValue; // Should send to local
         var targetID = ushort.MaxValue;
         var x = short.Parse(args[1]);
         var y = short.Parse(args[2]);
@@ -1318,14 +1360,41 @@ public static class ChatCommands
 
     public static void BulletRingCmd(string[] args, Command cmd)
     {
-        // args: weaponIndex, radius
+        // args:  (targetcolor), (weaponIndex), (isLocalDisplay), (radius)
         var playerID = MatchmakingHandler.IsNetworkMatch ? Helper.networkPlayer.NetworkSpawnID : ushort.MaxValue;
         var targetID = ushort.MaxValue;
-        var weaponIndex = args.Length > 0 ? int.Parse(args[0]) : -1;
-        var radius = args.Length > 1 ? int.Parse(args[1]) : 200;
+
+        var targetcolor = "all";
+        var weaponIndex = -1;
+        var isLocalDisplay = true;
+        var radius = 200;
+
+        foreach (var arg in args)
+        {
+            if (!int.TryParse(arg, out _) && !bool.TryParse(arg, out _))
+            {
+                targetcolor = arg;
+                targetID = arg == "all" ? ushort.MaxValue : Helper.GetIDFromColor(arg);
+            }
+            else if (bool.TryParse(arg, out bool parsedBool))
+            {
+                isLocalDisplay = parsedBool;
+            }
+            else if (int.TryParse(arg, out int parsedInt))
+            {
+                if (weaponIndex == -1)
+                {
+                    weaponIndex = parsedInt;
+                }
+                else
+                {
+                    radius = parsedInt;
+                }
+            }
+        }
 
         cmd.SetOutputMsg("Bullet Ring!");
-        CoroutineRunner.Run(CheatHelper.BulletRing(playerID, targetID, (short)radius, weaponIndex));
+        CoroutineRunner.Run(CheatHelper.BulletRing(playerID, targetID, radius, weaponIndex, isLocalDisplay));
     }
 
     public static void AfkCmd(string[] args, Command cmd)

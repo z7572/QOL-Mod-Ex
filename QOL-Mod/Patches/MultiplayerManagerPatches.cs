@@ -1,16 +1,16 @@
-﻿using System;
-using System.IO;
-using System.Linq;
+﻿using HarmonyLib;
+using Steamworks;
+using System;
 using System.Collections;
-using HarmonyLib;
+using System.Linq;
 using TMPro;
 using UnityEngine;
-using Steamworks;
 using Object = UnityEngine.Object;
 
 
 namespace QOL.Patches;
 
+[HarmonyPatch(typeof(MultiplayerManager))]
 class MultiplayerManagerPatches
 {
     public static void Patches(Harmony harmonyInstance) // Multiplayer methods to patch with the harmony __instance
@@ -32,21 +32,6 @@ class MultiplayerManagerPatches
         var onPlayerSpawnedMethodPostfix = new HarmonyMethod(typeof(MultiplayerManagerPatches)
             .GetMethod(nameof(OnPlayerSpawnedMethodPostfix)));
         harmonyInstance.Patch(onPlayerSpawnedMethod, postfix: onPlayerSpawnedMethodPostfix);
-
-        var onKickedMethod = AccessTools.Method(typeof(MultiplayerManager), "OnKicked");
-        var onKickedMethodPrefix = new HarmonyMethod(typeof(MultiplayerManagerPatches)
-            .GetMethod(nameof(OnKickedMethodPrefix)));
-        harmonyInstance.Patch(onKickedMethod, prefix: onKickedMethodPrefix);
-
-        var onMapChangedMethod = AccessTools.Method(typeof(MultiplayerManager), "OnMapChanged");
-        var onMapChangedMethodPrefix = new HarmonyMethod(typeof(MultiplayerManagerPatches)
-            .GetMethod(nameof(OnMapChangedMethodPrefix)));
-        harmonyInstance.Patch(onMapChangedMethod, prefix: onMapChangedMethodPrefix);
-
-        var onNewWorkshopMapsRecievedMethod = AccessTools.Method(typeof(MultiplayerManager), "OnNewWorkshopMapsRecieved");
-        var onNewWorkshopMapsRecievedMethodPrefix = new HarmonyMethod(typeof(MultiplayerManagerPatches)
-            .GetMethod(nameof(OnNewWorkshopMapsRecievedMethodPrefix)));
-        harmonyInstance.Patch(onNewWorkshopMapsRecievedMethod, prefix: onNewWorkshopMapsRecievedMethodPrefix);
     }
 
     public static void OnServerJoinedMethodPostfix()
@@ -62,10 +47,10 @@ class MultiplayerManagerPatches
     }
 
     // Refuse player in the blacklist to join
-    // https://server.monblog.top/alist/%E6%8F%92%E4%BB%B6/%E9%BB%91%E5%90%8D%E5%8D%95/stick.plugins.blacklist-1.0.0.dll
-    [HarmonyPatch(typeof(MultiplayerManager), "AddClientToList")]
+    // Credit to https://server.monblog.top/alist/%E6%8F%92%E4%BB%B6/%E9%BB%91%E5%90%8D%E5%8D%95/stick.plugins.blacklist-1.0.0.dll
+    [HarmonyPatch("AddClientToList")]
     [HarmonyPrefix]
-    public static bool AddClientToListPrefix(P2PPackageHandler ___mPacketHandler, ref CSteamID newClient)
+    private static bool AddClientToListPrefix(P2PPackageHandler ___mPacketHandler, ref CSteamID newClient)
     {
         if (Blacklist.IsPlayerBlacklisted(newClient.ToString()))
         {
@@ -80,9 +65,13 @@ class MultiplayerManagerPatches
     }
 
     // Guards against Built-in kick attempts made towards the user by skipping the method, if not Monky or Rexi or z7572
-    public static bool OnKickedMethodPrefix() => Helper.TrustedKicker;
+    [HarmonyPatch("OnKicked")]
+    [HarmonyPrefix]
+    private static bool OnKickedPrefix() => Helper.TrustedKicker;
 
-    public static bool OnMapChangedMethodPrefix(byte[] data)
+    [HarmonyPatch("OnMapChanged")]
+    [HarmonyPrefix]
+    private static bool OnMapChangedPrefix(byte[] data)
     {
         if (Helper.TrustedKicker) return true;
 
@@ -110,14 +99,16 @@ class MultiplayerManagerPatches
     }
 
     // Guards against Workshop_Crash
-    public static bool OnNewWorkshopMapsRecievedMethodPrefix(byte[] mapData)
+    [HarmonyPatch("OnNewWorkshopMapsRecieved")]
+    [HarmonyPrefix]
+    private static bool OnNewWorkshopMapsRecievedPrefix(byte[] mapData)
     {
         if (Helper.TrustedKicker) return true;
 
         var senderPlayerColor = Helper.GetColorFromID(Helper.ClientData
             .First(data => data.ClientID == Helper.LastPacketSender)
             .PlayerObject.GetComponent<NetworkPlayer>()
-            .NetworkSpawnID); ;
+            .NetworkSpawnID);
         var senderPlayerID = Helper.LastPacketSender.m_SteamID.ToString();
 
         if (mapData.Length > 802 /* 100 * 8 + 2 */ ) // 100 maps
@@ -127,7 +118,7 @@ class MultiplayerManagerPatches
             return false;
         }
 
-        //Debug.Log("Recieved mapData: " + mapData.ToByteString());
+        //Debug.Log("Recieved mapData: " + mapData.ToDecString());
         return true;
     }
 

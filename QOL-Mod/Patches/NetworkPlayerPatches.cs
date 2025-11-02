@@ -1,25 +1,27 @@
-﻿using System.Text;
-using HarmonyLib;
+﻿using HarmonyLib;
+using Steamworks;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection.Emit;
+using System.Text;
 using UnityEngine;
 
 namespace QOL.Patches;
 
-internal class NetworkPlayerPatch
+[HarmonyPatch(typeof(NetworkPlayer))]
+class NetworkPlayerPatch
 {
     public static void Patch(Harmony harmonyInstance) // NetworkPlayer methods to patch with the harmony instance
     {
-        var createNetworkPositionPackageMethod = AccessTools.Method(typeof(NetworkPlayer), "CreateNetworkPositionPackage");
-        var createNetworkPositionPackagePostfix = new HarmonyMethod(typeof(NetworkPlayerPatch)
-            .GetMethod(nameof(CreateNetworkPositionPackagePostfix)));
-        harmonyInstance.Patch(createNetworkPositionPackageMethod, postfix: createNetworkPositionPackagePostfix);
-
         var syncClientChatMethod = AccessTools.Method(typeof(NetworkPlayer), "SyncClientChat");
         var syncClientChatMethodPrefix = new HarmonyMethod(typeof(NetworkPlayerPatch)
             .GetMethod(nameof(SyncClientChatMethodPrefix)));
         harmonyInstance.Patch(syncClientChatMethod, prefix: syncClientChatMethodPrefix);
     }
 
-    public static void CreateNetworkPositionPackagePostfix(ref NetworkPlayer.NetworkPositionPackage __result)
+    [HarmonyPatch("CreateNetworkPositionPackage")]
+    [HarmonyPostfix]
+    private static void CreateNetworkPositionPackagePostfix(ref NetworkPlayer.NetworkPositionPackage __result)
     {
         if (ChatCommands.CmdDict["invisible"].IsEnabled)
         {
@@ -27,6 +29,60 @@ internal class NetworkPlayerPatch
             __result.Rotation = new ByteVector2(0, 0);
         }
     }
+
+    [HarmonyPatch("ListenForPositionPackages")]
+    [HarmonyTranspiler]
+    private static IEnumerable<CodeInstruction> ListenForPositionPackagesTranspiler(IEnumerable<CodeInstruction> instructions)
+    {
+        var codes = new List<CodeInstruction>(instructions);
+        var matcher = new CodeMatcher(codes);
+        matcher.MatchForward(false, new CodeMatch(OpCodes.Ldstr, "Failed to read P2P Package!"));
+        int insertIndex = matcher.Pos + 3;
+        var newCodes = new List<CodeInstruction>
+            {
+                new CodeInstruction(OpCodes.Ldloc_1), // byte[] array (index 1)
+                new CodeInstruction(OpCodes.Ldloc_S, 3), // CSteamID csteamID (index 3)
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NetworkPlayerPatch), nameof(IsProjectilePacketOverLimit)))
+            };
+
+        codes.InsertRange(insertIndex, newCodes);
+        return codes;
+    }
+
+    public static void IsProjectilePacketOverLimit(byte[] array, CSteamID sender)
+    {
+        AllowProjectilePacket = true;
+        int bulletCount = -1;
+        if (array.Length >= 12 && (array.Length - 12) % 8 == 0)
+        {
+            bulletCount = (array.Length - 12) / 8;
+        }
+        else
+        {
+            Helper.ShowLoadText($"Unexpected projectile packet length: {array.Length}, sender: {sender}");
+            Debug.LogWarning($"Unexpected projectile packet length: {array.Length}, sender: {sender}");
+        }
+
+        if (bulletCount >= 10)
+        {
+            Helper.LastKickPacketSender = sender;
+            Helper.GetColorFromID(Helper.ClientData
+            .First(data => data.ClientID == Helper.LastKickPacketSender)
+            .PlayerObject.GetComponent<NetworkPlayer>()
+            .NetworkSpawnID);
+            AllowProjectilePacket = false;
+            P2PPackageHandlerPatch.CheckPacket(sender, true);
+            Helper.ShowLoadText($"Blocked {bulletCount} projectiles packets sent from player: {Helper.GetPlayerName(sender)} Blacklisted!");
+            return;
+        }
+    }
+
+    private static bool AllowProjectilePacket = true;
+
+    // Guards against projectile packets spamming
+    [HarmonyPatch("SyncClientState")]
+    [HarmonyPrefix]
+    private static bool SyncClientStatePrefix() => AllowProjectilePacket;
 
     public static bool SyncClientChatMethodPrefix(ref byte[] data, NetworkPlayer __instance)
     {

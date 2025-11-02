@@ -29,7 +29,7 @@ public class P2PPackageHandlerPatch
         }
     }
 
-    // Check and block kick packets, auto blacklist
+    // Check and block kick packets and auto blacklist
     public static void CheckPacket(CSteamID kickPacketSender, bool isKickPacket)
     {
         var senderPlayerColor = Helper.GetColorFromID(Helper.ClientData

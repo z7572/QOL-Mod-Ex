@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using HarmonyLib;
+using System.Linq;
 
 namespace QOL;
 
@@ -10,6 +11,9 @@ public static class Extensions
     public static bool StartsWith(this string str, char charToFind)
         => str.StartsWith(charToFind.ToString());
 
-    public static string ToByteString(this byte[] bytes)
-        => bytes == null ? "null" : string.Join(" ", bytes.Select(b => b.ToString()).ToArray());
+    public static string ToDecString(this byte[] bytes)
+        => bytes == null ? "null" : string.Join(" ", bytes.Select(b => b.ToString().PadLeft(3)).ToArray());
+
+    public static string ToHexString(this byte[] bytes)
+        => bytes == null ? "null" : string.Join(" ", bytes.Select(b => b.ToString("X2").PadLeft(2)).ToArray());
 }

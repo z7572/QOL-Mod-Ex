@@ -272,19 +272,29 @@ public class Helper
     }
 
     public static void SendMessageToAllClients(byte[] data, P2PPackageHandler.MsgType type, bool ignoreServer = false,
-        ulong ignoreUserID = 0, EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = 0)
+        ulong ignoreUserID = 0, EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = -1)
     {
+        if (ChatCommands.CmdDict["logpkg"].IsEnabled)
+            Debug.Log(
+                $"[QOL] Sent message to all clients: \n" +
+                $"type: {type}\n" +
+                $"data: {data.ToDecString()}\n" +
+                $"channel: {channel}");
         SendMessageToAllClients(gameManager.mMultiplayerManager, data, type, ignoreServer, ignoreUserID, sendMethod,
-                channel == 0 ? GetChannelForMsgType(P2PPackageHandler.Instance, type) : channel);
-        Debug.Log($"[QOL] Sent message to all clients of type {type} and data: {data.ToByteString()}");
+                (channel != -1) ? channel : GetChannelForMsgType(P2PPackageHandler.Instance, type));
     }
 
     public static void SendP2PPacketToUser(CSteamID clientID, byte[] data, P2PPackageHandler.MsgType type,
-        EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = 0)
+        EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = -1)
     {
+        if (ChatCommands.CmdDict["logpkg"].IsEnabled)
+            Debug.Log(
+                $"[QOL] Sent message to client: {clientID}\n" +
+                $"type: {type}\n" +
+                $"data: {data.ToDecString()}\n" +
+                $"channel: {channel}");
         P2PPackageHandler.Instance.SendP2PPacketToUser(clientID, data, type, sendMethod,
-                channel == 0 ? GetChannelForMsgType(P2PPackageHandler.Instance, type) : channel);
-        Debug.Log($"[QOL] Sent message to user {clientID} of type {type} and data: {data.ToByteString()}");
+                (channel != -1) ? channel : GetChannelForMsgType(P2PPackageHandler.Instance, type));
     }
 
     public static void InitMusic(GameManager __instance)
