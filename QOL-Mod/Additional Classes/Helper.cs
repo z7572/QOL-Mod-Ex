@@ -414,6 +414,13 @@ public class Helper
     public static Scene LoadedScene;
     public static Material skyBoxMat;
 
+    // Cauculate the portion exceeding the screen ratio
+    public static float ScreenWidthScaleFactor =>
+        (Screen.width / (float)Screen.height) > 16f / 9f ? (Screen.width / (float)Screen.height) / (16f / 9f) : 1f;
+    public static float ScreenHeightScaleFactor =>
+        (Screen.width / (float)Screen.height) < 16f / 9f ? (16f / 9f) / (Screen.width / (float)Screen.height) : 1f;
+
+
     //public static readonly string[] OuchPhrases = Plugin.ConfigOuchPhrases.Value.Split(' ');
     //private static readonly bool NameResize = Plugin.ConfigNoResize.Value;
     private static int _notifyUpdateCount;

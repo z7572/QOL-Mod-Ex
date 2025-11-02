@@ -122,6 +122,20 @@ class MultiplayerManagerPatches
         return true;
     }
 
+    [HarmonyPatch("OnSceneStarted")]
+    [HarmonyPrefix]
+    private static void OnSceneStartedPrefix()
+    {
+        var inputField = GameObject.Find("GameManagement/GameCanvas/TextMeshPro - InputField");
+        if (inputField != null)
+        {
+            Vector3 newPos = inputField.transform.position;
+            newPos.z = 0f;
+            inputField.transform.position = newPos;
+            OnlineRoomPatch.SetChatBubbleCap(true);
+        }
+    }
+
     /*public static void OnPlayerSpawnedMethodPrefix(ref GameObject ___m_PlayerPrefab)
     {
         Debug.Log("RUNNING OnPlayerSpawned NOW!!!!!");
