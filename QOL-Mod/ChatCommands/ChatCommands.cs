@@ -23,7 +23,7 @@ public static class ChatCommands
         new Command("blacklist", BlacklistCmd, 0, true, new List<string>(4) { "add", "remove", "list", "clear" }),
         new Command("bossmusic", BossMusicCmd, 1, true, new List<string>(5) { "blue", "red", "yellow", "rainbow", "stop" }),
         new Command("bulletcolor", BulletColorCmd, 0, true, new List<string>(8) { "team", "battery", "random", "yellow", "blue", "red", "green", "white" }).MarkAsToggle(),
-        new Command("config", ConfigCmd, 1, true, ConfigHandler.GetConfigKeys().ToList()),
+        new Command("config", ConfigCmd, 1, true, ConfigHandler.GetConfigKeys().ToList()), // Maybe make this a dynamic param and get the type of config keys
         new Command("deathmsg", DeathMsgCmd, 0, false).MarkAsToggle(),
         new Command("dm", DmCmd, 1, false, PlayerUtils.PlayerColorsParams),
         new Command("fov", FovCmd, 1, true),
@@ -38,8 +38,11 @@ public static class ChatCommands
         new Command("join", JoinCmd, 1, true),
         new Command("lobhp", LobHpCmd, 0, false).SetAlwaysPublic(),
         new Command("lobregen", LobRegenCmd, 0, false).SetAlwaysPublic(),
-        new Command("logprivate", LogPrivateCmd, 1, true, CmdNames),
-        new Command("logpublic", LogPublicCmd, 1, true, CmdNames),
+        new Command("logvisibility", LogVisibilityCmd, 2, true, new List<List<string>>
+        {
+            new() { "public", "private" },
+            CmdNames
+        }),
         new Command("lowercase", LowercaseCmd, 0, true).MarkAsToggle(),
         new Command("nuky", NukyCmd, 0, true).MarkAsToggle(),
         new Command("maps", MapsCmd, 1, true, MapPresetHandler.MapPresetNames),
@@ -52,6 +55,7 @@ public static class ChatCommands
         new Command("public", PublicCmd, 0, true),
         new Command("pumpkin", PumpkinCmd, 0, true).MarkAsToggle(),
         new Command("rainbow", RainbowCmd, 0, true).MarkAsToggle(),
+        //new Command("reconnect", ReconnectCmd, 0, true),
         new Command("resolution", ResolutionCmd, 2, true),
         new Command("rich", RichCmd, 0, true).MarkAsToggle(),
         new Command("say", SayCmd, 1, false),
@@ -63,25 +67,47 @@ public static class ChatCommands
         new Command("uwu", UwuCmd, 0, true).MarkAsToggle(),
         new Command("ver", VerCmd, 0, true),
         new Command("weapons", WeaponsCmd, 1, true, GunPresetHandler.GunPresetNames),
-        new Command("wings", WingsCmd, 1, true, new List<string>(5) { "blue", "red", "yellow", "white", "none" }),
+        new Command("wings", WingsCmd, 1, true, new List<List<string>> { new(){ "blue", "red", "yellow", "rainbow", "none" }, new(){ "add" } }),
         new Command("winnerhp", WinnerHpCmd, 0, false).MarkAsToggle(),
         new Command("winstreak", WinstreakCmd, 0, true).MarkAsToggle(),
 
-        /* TODO: Implement multiple auto-completion
-        new List<List<string>>
-        {
-            PlayerUtils.PlayerColorsParams,
-            CmdNames,
-            new List<string> { } // Parameters of the command
-        }),*/
+        // Multiple parameters examples
+        //new Command("testmulti", null, 1, true, new List<List<string>>
+        //{
+        //    new List<string> { "option1", "option2", "option3" },
+        //    new List<string> { "sub1", "sub2", "sub3" },
+        //    new List<string> { "final1", "final2" }
+        //}),
+        //new Command("testtree", null, 1, true, new Dictionary<string, object>
+        //{
+        //    { "branch1", new Dictionary<string, object>
+        //        {
+        //            { "leaf1", new List<string> { "value1", "value2" } },
+        //            { "leaf2", new List<string> { "value3", "value4" } }
+        //        }
+        //    },
+        //    { "branch2", new List<string> { "optionA", "optionB" } }
+        //}),
+
         // Cheat cmds below
         new Command("afk", AfkCmd, 0, true).MarkAsToggle(), // TODO: Assign AI to player and auto turn off when anyKeyDown
-        new Command("logpkg", LogPkgCmd, 0, true, Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList()).MarkAsToggle(),
+        new Command("logpkg", LogPkgCmd, 0, true, new List<List<string>>
+        {
+            // TODO: Make this an infinite or dynamic list
+            Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList(),
+            Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList(),
+            Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList()
+        }).MarkAsToggle(),
         new Command("dmgpkg", DmgPkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
         new Command("firepkg", FirePkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
         new Command("bullethell", BulletHellCmd, 0, true, PlayerUtils.PlayerColorsParamsWithAll),
         new Command("bulletring", BulletRingCmd, 0, true),
-        new Command("execute", ExecuteCmd, 2, true, PlayerUtils.PlayerColorsParams),
+        new Command("execute", ExecuteCmd, 2, true, new List<List<string>>
+        {
+            PlayerUtils.PlayerColorsParams,
+            CmdNames.Select(cmd => cmd.Substring(1)).ToList()
+            // TODO: Dynamic list of chain command's parameters
+        }),
         new Command("boss", BossCmd, 1, true, new List<string>(5) { "blue", "red", "yellow", "rainbow", "none" }),
         new Command("blockall", BlockAllCmd, 0, true).MarkAsToggle(),
         new Command("god", GodCmd, 0, true).MarkAsToggle(),
@@ -619,7 +645,7 @@ public static class ChatCommands
 
     // Opens up the steam overlay to the GitHub readme, specifically the Chat Commands section
     private static void HelpCmd(string[] args, Command cmd)
-        => SteamFriends.ActivateGameOverlayToWebPage("https://github.com/Mn0ky/QOL-Mod#chat-commands");
+        => SteamFriends.ActivateGameOverlayToWebPage("https://github.com/z7572/QOL-Mod-Ex#chat-commands");
 
     private static void HikotokoCmd(string[] args, Command cmd)
     {
@@ -678,6 +704,7 @@ public static class ChatCommands
 
     private static void JoinCmd(string[] args, Command cmd)
     {
+        // Support both CSteamID and steam://joinlobby/... links
         var targetLobbyId = CSteamID.Nil;
         if (args == null || args.Length == 0)
         {
@@ -724,15 +751,33 @@ public static class ChatCommands
     private static void LobRegenCmd(string[] args, Command cmd)
         => cmd.SetOutputMsg("Lobby Regen: " + Convert.ToBoolean(OptionsHolder.regen));
 
-    private static void LogPrivateCmd(string[] args, Command cmd)
+    private static void LogVisibilityCmd(string[] args, Command cmd)
     {
-        var targetCmdName = args[0].Replace("\"", "").Replace("/", "")
+        var visibility = args[0].ToLower();
+        var targetCmdName = args[1].Replace("\"", "").Replace("/", "")
             .TrimStart(Command.CmdPrefix)
-            .ToLower(); // Even though CmdDict is case-insensitive we need to compare it to "all"
+            .ToLower();
+
+        if (visibility != "public" && visibility != "private")
+        {
+            cmd.SetOutputMsg("First parameter must be 'public' or 'private'");
+            cmd.SetLogType(Command.LogType.Warning);
+            return;
+        }
+
+        bool isPublic = visibility == "public";
 
         if (targetCmdName == "all")
         {
-            cmd.SetOutputMsg("Toggled private logging for all applicable commands.");
+            if (isPublic)
+            {
+                cmd.SetOutputMsg("Toggled public logging for all applicable commands.");
+                ConfigHandler.AllOutputPublic = true;
+            }
+            else
+            {
+                cmd.SetOutputMsg("Toggled private logging for all applicable commands.");
+            }
             SaveCmdVisibilityStates();
             return;
         }
@@ -747,50 +792,16 @@ public static class ChatCommands
 
         var targetCmd = CmdDict[targetCmdName];
 
-        if (targetCmd.AlwaysPublic)
+        if ((isPublic && targetCmd.AlwaysPrivate) || (!isPublic && targetCmd.AlwaysPublic))
         {
-            cmd.SetOutputMsg(targetCmd.Name + " is restricted to public logging only.");
+            var restrictionType = isPublic ? "private" : "public";
+            cmd.SetOutputMsg(targetCmd.Name + " is restricted to " + restrictionType + " logging only.");
             cmd.SetLogType(Command.LogType.Warning);
             return;
         }
 
-        targetCmd.IsPublic = false;
-        cmd.SetOutputMsg("Toggled private logging for " + targetCmd.Name + ".");
-        SaveCmdVisibilityStates();
-    }
-
-    private static void LogPublicCmd(string[] args, Command cmd)
-    {
-        var targetCmdName = args[0].Replace("\"", "").Replace("/", "")
-            .TrimStart(Command.CmdPrefix)
-            .ToLower();
-
-        if (targetCmdName == "all")
-        {
-            cmd.SetOutputMsg("Toggled public logging for all applicable commands.");
-            ConfigHandler.AllOutputPublic = true;
-            SaveCmdVisibilityStates();
-            return;
-        }
-
-        if (!CmdDict.ContainsKey(targetCmdName))
-        {
-            cmd.SetOutputMsg("Specified command not found.");
-            cmd.SetLogType(Command.LogType.Warning);
-            return;
-        }
-
-        var targetCmd = CmdDict[targetCmdName];
-
-        if (targetCmd.AlwaysPrivate)
-        {
-            cmd.SetOutputMsg(targetCmd.Name + " is restricted to private logging only.");
-            cmd.SetLogType(Command.LogType.Warning);
-            return;
-        }
-
-        targetCmd.IsPublic = true;
-        cmd.SetOutputMsg("Toggled public logging for " + targetCmd.Name + ".");
+        targetCmd.IsPublic = isPublic;
+        cmd.SetOutputMsg("Toggled " + visibility + " logging for " + targetCmd.Name + ".");
         SaveCmdVisibilityStates();
     }   
 
@@ -1182,7 +1193,7 @@ public static class ChatCommands
     }
 
     // Outputs the mod version number to chat
-    private static void VerCmd(string[] args, Command cmd) => cmd.SetOutputMsg("QOL Mod: " + Plugin.VersionNumber);
+    private static void VerCmd(string[] args, Command cmd) => cmd.SetOutputMsg("QOL Mod Ex: " + Plugin.VersionNumber);
 
 
     private static void WingsCmd(string[] args, Command cmd)

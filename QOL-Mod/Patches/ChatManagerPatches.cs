@@ -192,27 +192,29 @@ public class ChatManagerPatches
                 }
             }
         }
+
         void HandleCommandNavigation(bool forward)
         {
             var txt = chatField.text;
-            if (!txt.StartsWith(Command.CmdPrefix)) return; // Not a command
+            if (!txt.StartsWith(Command.CmdPrefix)) return;
 
             var allCmds = ChatCommands.CmdNames;
             var matchedCmd = allCmds.FirstOrDefault(cmd => txt.ToLower() == cmd);
 
             if (matchedCmd != null)
             {
-                var currentCmdIndex = allCmds.FindIndex(cmd => cmd.StartsWith(matchedCmd));
+                // 命令名称切换逻辑（保持不变）
+                var currentParamIndex = allCmds.FindIndex(cmd => cmd.StartsWith(matchedCmd));
                 string newCmd = forward
-                    ? (currentCmdIndex >= 0 && currentCmdIndex < allCmds.Count - 1 ? allCmds[currentCmdIndex + 1] : allCmds.First())
-                    : (currentCmdIndex > 0 && currentCmdIndex < allCmds.Count ? allCmds[currentCmdIndex - 1] : allCmds.Last());
+                    ? (currentParamIndex >= 0 && currentParamIndex < allCmds.Count - 1 ? allCmds[currentParamIndex + 1] : allCmds.First())
+                    : (currentParamIndex > 0 ? allCmds[currentParamIndex - 1] : allCmds.Last());
 
                 chatField.DeactivateInputField();
                 chatField.text = newCmd;
                 chatField.stringPosition = chatField.text.Length;
                 chatField.ActivateInputField();
             }
-            else // Must be inputting parameters
+            else // 参数切换逻辑
             {
                 Command cmd = null;
                 var cmdName = txt.Replace(Command.CmdPrefix, "").Split(' ')[0].ToLower();
@@ -222,68 +224,62 @@ public class ChatManagerPatches
 
                 if (cmd == null || cmd.AutoParams == null) return;
 
-                var paramStartIndex = txt.IndexOf(' ') + 1;
-                var currentParam = txt.Substring(paramStartIndex).Split(' ')[0];
-                var newParam = "";
-
-                if (cmd.AutoParams is List<string> targetCmdParams) // One parameter
+                // 移除富文本以获取纯文本
+                var plainText = txt;
+                const string rTxtFmt = "<#000000BB><u>";
+                var richTextPos = plainText.IndexOf(rTxtFmt);
+                if (richTextPos != -1)
                 {
-                    paramStartIndex = txt.IndexOf(' ') + 1;
-                    currentParam = txt.Substring(paramStartIndex).Split(' ')[0];
-                    var matchedParam = targetCmdParams.FirstOrDefault(p => p.StartsWith(currentParam));
-
-                    if (matchedParam == null || currentParam != matchedParam || !targetCmdParams.Contains(matchedParam)) return;
-
-                    var currentParamIndex = targetCmdParams.FindIndex(p => p.StartsWith(currentParam));
-
-                    if (forward)
-                    {
-                        newParam = currentParamIndex >= 0 && currentParamIndex < targetCmdParams.Count - 1
-                            ? targetCmdParams[currentParamIndex + 1]
-                            : targetCmdParams.First();
-                    }
-                    else
-                    {
-                        newParam = currentParamIndex > 0 && currentParamIndex < targetCmdParams.Count
-                            ? targetCmdParams[currentParamIndex - 1]
-                            : targetCmdParams.Last();
-                    }
+                    plainText = plainText.Remove(richTextPos);
                 }
-                // If I finished this, I will bump the version to 1.19
-                // TOO HARD
-                else if (cmd.AutoParams is List<List<string>> targetCmdParamsByIndex) // Multiple parameters
+
+                // 正确计算当前参数索引
+                var args = plainText.Replace(Command.CmdPrefix, "").Split(' ');
+                if (args.Length <= 1) return; // 只有命令名，没有参数
+
+                var currentParamIndex = args.Length - 2; // -2 因为：args[0]是命令名
+                var currentParam = args[args.Length - 1];
+
+                // 获取候选参数列表
+                var previousArgs = args.Skip(1).Take(currentParamIndex).ToArray();
+                var candidates = cmd.GetAutoParamCandidates(previousArgs);
+
+                if (candidates.Count == 0) return;
+
+                var matchedParam = candidates.FirstOrDefault(p => p.StartsWith(currentParam, StringComparison.InvariantCultureIgnoreCase));
+
+                if (matchedParam == null)
                 {
-                    // TODO
+                    matchedParam = candidates.First();
                 }
-                else if (cmd.AutoParams is Dictionary<string, object /* string or Dictionary (nested) */ > targetCmdParamsTree) // Tree structure
+
+                var currentParamIndexInList = candidates.IndexOf(matchedParam);
+                string newParam;
+
+                if (forward)
                 {
-                    //// TODO: Support Dictionary values
-                    //var matchedParam = targetCmdParamsByName.Keys.FirstOrDefault(p => p.StartsWith(currentParam));
-
-                    //if (matchedParam == null || currentParam != matchedParam || !targetCmdParamsByName.ContainsKey(matchedParam)) return;
-
-                    //var paramKeys = targetCmdParamsByName.Keys.ToList();
-                    //var currentParamIndex = paramKeys.FindIndex(p => p.StartsWith(currentParam));
-
-                    //if (forward)
-                    //{
-                    //    newParam = currentParamIndex >= 0 && currentParamIndex < paramKeys.Count - 1
-                    //        ? paramKeys[currentParamIndex + 1]
-                    //        : paramKeys.First();
-                    //}
-                    //else
-                    //{
-                    //    newParam = currentParamIndex > 0 && currentParamIndex < paramKeys.Count
-                    //        ? paramKeys[currentParamIndex - 1]
-                    //        : paramKeys.Last();
-                    //}
+                    newParam = currentParamIndexInList >= 0 && currentParamIndexInList < candidates.Count - 1
+                        ? candidates[currentParamIndexInList + 1]
+                        : candidates.First();
+                }
+                else
+                {
+                    newParam = currentParamIndexInList > 0
+                        ? candidates[currentParamIndexInList - 1]
+                        : candidates.Last();
                 }
 
                 chatField.DeactivateInputField();
-                chatField.text = txt.Substring(0, paramStartIndex) + newParam;
+
+                // 正确构建新文本：找到当前参数的开始位置
+                var lastSpaceIndex = plainText.LastIndexOf(' ');
+                if (lastSpaceIndex == -1) return;
+
+                // 保留前面的所有文本，只替换最后一个参数
+                var baseText = plainText.Substring(0, lastSpaceIndex + 1); // 包含空格
+                chatField.text = baseText + newParam;
                 chatField.stringPosition = chatField.text.Length;
                 chatField.ActivateInputField();
-
             }
         }
     }
@@ -476,18 +472,17 @@ public class ChatManagerPatches
                 if (cmdAndParam.Length <= 1 || cmdAndParam[0].Length != cmdMatch.Length) return;
 
                 // Focusing on auto-completing the parameter now
-                var paramTxt = cmdAndParam[1].Replace(" ", "");
+                var paramTxt = cmdAndParam[cmdAndParam.Length - 1];
                 var paramTxtLen = paramTxt.Length;
 
                 // TODO: Implement auto-completing multiple parameters
-                var currentParamIndex = cmdAndParam.Length - 1;
+                var currentParamIndex = cmdAndParam.Length - 2; // skip [0] (cmd)
 
                 if (targetCmdParams is List<string> simpleAutoParams)
                 {
                     //Debug.Log("paramTxt: \"" + paramTxt + "\"");
                     var paramsMatched = simpleAutoParams.FindAll(
                     word => word.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
-
 
                     // Len check is band-aid so spaces don't break it, this will affect dev on nest parameters if it happens
                     if (paramsMatched.Count > 0 && cmdAndParam.Length < 3)
@@ -500,7 +495,7 @@ public class ChatManagerPatches
                             var paramRichTxtStartPos = paramTxt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
                             if (paramRichTxtStartPos != -1 && paramTxt.Substring(0, paramRichTxtStartPos) == paramMatch)
                             {
-                                chatField.text = chatField.text.Remove(txtLen - paramMatchLen - rTxtFmt.Length + 1, 14);
+                                chatField.text = chatField.text.Remove(txtLen - paramMatchLen - rTxtFmt.Length + 1, rTxtFmt.Length);
                                 return;
                             }
 
@@ -531,107 +526,127 @@ public class ChatManagerPatches
                         chatField.text += rTxtFmt + paramMatch.Substring(paramTxtLen);
                         chatField.richText = true;
                     }
-                    else if (chatField.richText) // TODO: Implement support for rich text as argument input
+                    else if (chatField.richText) // ~TODO: Implement support for rich text as argument input~ --Why?
                     {
                         var effectStartPos = txt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
                         if (effectStartPos == -1) return;
 
                         chatField.text = txt.Remove(effectStartPos);
                     }
-
                 }
 
-                // TODO: Implement auto-completing multiple parameters
-                // Below are not used
+                // Implement auto-completing multiple parameters
                 else if (targetCmdParams is List<List<string>> AutoParamsByIndex)
                 {
-                    if (currentParamIndex < AutoParamsByIndex.Count)
+                    var previousArgs = cmdAndParam.Skip(1).Take(cmdAndParam.Length - 2).ToArray();
+                    var candidates = targetCmd.GetAutoParamCandidates(previousArgs);
+
+                    if (candidates != null && candidates.Count > 0)
                     {
-                        var currentParamList = AutoParamsByIndex[currentParamIndex];
-                        var paramsMatched = currentParamList.Where(param => param.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase)).ToList();
+                        var match = candidates.FirstOrDefault(p => p.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
 
-                        if (paramsMatched.Count > 0 && cmdAndParam.Length < 3)
+                        if (match != null)
                         {
-                            var paramMatch = paramsMatched[0];
-                            var paramMatchLen = paramMatch.Length;
+                            var matchLen = match.Length;
 
-                            if (paramTxtLen == paramMatchLen)
+                            if (paramTxtLen == matchLen)
                             {
-                                chatField.DeactivateInputField();
-                                chatField.text = txt.Remove(txtLen - paramMatchLen - rTxtFmt.Length) + paramMatch;
-                                chatField.stringPosition = chatField.text.Length;
-                                chatField.ActivateInputField();
-                            }
-                            else
-                            {
-                                chatField.text += rTxtFmt + paramMatch.Substring(paramTxtLen);
-                                chatField.richText = true;
-                            }
-                        }
-                    }
-                }
-                else if (targetCmdParams is Dictionary<string, object> AutoParamsByName)
-                {
-                    if (cmdAndParam.Length > 1)
-                    {
-                        currentParamIndex = cmdAndParam.Length - 2;
-                        var currentParamText = cmdAndParam[currentParamIndex + 1].ToLower();
-
-                        object currentParamLevel = AutoParamsByName;
-
-                        for (int i = 1; i <= currentParamIndex; i++)
-                        {
-                            var previousParam = cmdAndParam[i].ToLower();
-                            if (currentParamLevel is Dictionary<string, object> nestedParams && nestedParams.ContainsKey(previousParam))
-                            {
-                                currentParamLevel = nestedParams[previousParam];
-                            }
-                            else
-                            {
-                                currentParamLevel = null;
-                                break;
-                            }
-                        }
-
-                        if (currentParamLevel is List<string> nextParams)
-                        {
-                            var paramsMatched = nextParams
-                                .Where(param => param.StartsWith(currentParamText, StringComparison.InvariantCultureIgnoreCase))
-                                .ToList();
-
-                            if (paramsMatched.Count > 0)
-                            {
-                                var paramMatch = paramsMatched[0];
-                                var paramMatchLen = paramMatch.Length;
-
-                                if (currentParamText.Length == paramMatchLen)
+                                var paramRichTxtStartPos = paramTxt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
+                                if (paramRichTxtStartPos != -1 && paramTxt.Substring(0, paramRichTxtStartPos) == match)
                                 {
-                                    var paramRichTxtStartPos = currentParamText.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
-                                    if (paramRichTxtStartPos != -1 && currentParamText.Substring(0, paramRichTxtStartPos) == paramMatch)
-                                    {
-                                        chatField.text = chatField.text.Remove(txtLen - paramMatchLen - rTxtFmt.Length + 1, 14);
-                                        return;
-                                    }
-
-                                    if (Input.GetKeyDown(KeyCode.Tab))
-                                    {
-                                        chatField.DeactivateInputField();
-                                        chatField.text = txt.Remove(txtLen - currentParamText.Length) + paramMatch;
-                                        chatField.stringPosition = chatField.text.Length;
-                                        chatField.ActivateInputField();
-                                    }
-
+                                    chatField.text = chatField.text.Remove(txtLen - matchLen - rTxtFmt.Length + 1, rTxtFmt.Length);
                                     return;
                                 }
 
-                                chatField.text += rTxtFmt + paramMatch.Substring(currentParamText.Length);
-                                chatField.richText = true;
-                            }
-                        }
+                                if (Input.GetKeyDown(KeyCode.Tab))
+                                {
+                                    chatField.DeactivateInputField();
 
+                                    var currentIndexInList = candidates.IndexOf(match);
+                                    var newParam = candidates[currentIndexInList];
+
+                                    var lastSpaceIndex = parsedTxt.LastIndexOf(' ');
+                                    if (lastSpaceIndex == -1) return;
+
+                                    var baseText = parsedTxt.Substring(0, lastSpaceIndex + 1);
+                                    chatField.text = baseText + newParam;
+
+                                    chatField.stringPosition = chatField.text.Length;
+                                    chatField.ActivateInputField();
+                                    _canSwitchCmd = txt == parsedTxt;
+                                }
+                                return;
+                            }
+
+                            chatField.richText = true;
+                            chatField.text += rTxtFmt + match.Substring(paramTxtLen);
+                        }
+                        else if (chatField.richText)
+                        {
+                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                        }
+                    }
+                    else if (chatField.richText)
+                    {
+                        RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
                     }
                 }
-                
+
+                else if (targetCmdParams is Dictionary<string, object> AutoParamsTree)
+                {
+                    var previousArgs = cmdAndParam.Skip(1).Take(cmdAndParam.Length - 2).ToArray();
+                    var candidates = targetCmd.GetAutoParamCandidates(previousArgs);
+
+                    if (candidates != null && candidates.Count > 0)
+                    {
+                        var match = candidates.FirstOrDefault(p => p.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
+
+                        if (match != null)
+                        {
+                            var matchLen = match.Length;
+
+                            if (paramTxtLen == matchLen)
+                            {
+                                var paramRichTxtStartPos = paramTxt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
+                                if (paramRichTxtStartPos != -1 && paramTxt.Substring(0, paramRichTxtStartPos) == match)
+                                {
+                                    chatField.text = chatField.text.Remove(txtLen - matchLen - rTxtFmt.Length + 1, 14);
+                                    return;
+                                }
+
+                                if (Input.GetKeyDown(KeyCode.Tab))
+                                {
+                                    chatField.DeactivateInputField();
+
+                                    var currentIndexInList = candidates.IndexOf(match);
+                                    var newParam = candidates[currentIndexInList];
+
+                                    var lastSpaceIndex = parsedTxt.LastIndexOf(' ');
+                                    if (lastSpaceIndex == -1) return;
+
+                                    var baseText = parsedTxt.Substring(0, lastSpaceIndex + 1);
+                                    chatField.text = baseText + newParam;
+
+                                    chatField.stringPosition = chatField.text.Length;
+                                    chatField.ActivateInputField();
+                                    _canSwitchCmd = txt == parsedTxt;
+                                }
+                                return;
+                            }
+
+                            chatField.richText = true;
+                            chatField.text += rTxtFmt + match.Substring(paramTxtLen);
+                        }
+                        else if (chatField.richText)
+                        {
+                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                        }
+                    }
+                    else if (chatField.richText)
+                    {
+                        RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                    }
+                }
             }
         }
         else if (chatField.richText)
@@ -645,6 +660,35 @@ public class ChatManagerPatches
             }
             chatField.text = txt.Remove(effectStartPos);
             chatField.richText = false;
+        }
+    }
+
+    private static void RemoveRichTextAndTryRematch(TMP_InputField chatField, string txt, Command targetCmd, string[] previousArgs, string currentParam)
+    {
+        const string rTxtFmt = "<#000000BB><u>";
+        var effectStartPos = txt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
+        if (effectStartPos == -1) return;
+
+        var plainText = txt.Remove(effectStartPos);
+        chatField.text = plainText;
+        chatField.richText = false;
+
+        var currentArgs = plainText.Replace(Command.CmdPrefix, "").Split(' ');
+        if (currentArgs.Length > 1)
+        {
+            currentParam = currentArgs.Last();
+            previousArgs = currentArgs.Skip(1).Take(currentArgs.Length - 2).ToArray();
+            var newCandidates = targetCmd.GetAutoParamCandidates(previousArgs);
+
+            if (newCandidates != null && newCandidates.Count > 0)
+            {
+                var newMatch = newCandidates.FirstOrDefault(p => p.StartsWith(currentParam, StringComparison.InvariantCultureIgnoreCase));
+                if (newMatch != null)
+                {
+                    chatField.richText = true;
+                    chatField.text += rTxtFmt + newMatch.Substring(currentParam.Length);
+                }
+            }
         }
     }
 

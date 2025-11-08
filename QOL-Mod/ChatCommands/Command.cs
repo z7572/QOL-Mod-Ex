@@ -59,12 +59,10 @@ public class Command
         else if (autoParameters is List<List<string>> AutoParamsByIndex)
         {
             AutoParams = AutoParamsByIndex;
-                //.SelectMany((paramList, index) => paramList.Select(param => new KeyValuePair<string, int>(param, index)))
-                //.ToDictionary(pair => pair.Key, pair => pair.Value); // Dictionary<string, int>: {param, index}
         }
-        else if (autoParameters is Dictionary<string, object> AutoParamsByName)
+        else if (autoParameters is Dictionary<string, object> AutoParamsTree)
         {
-            AutoParams = AutoParamsByName;
+            AutoParams = AutoParamsTree;
         }
         else
         {
@@ -72,6 +70,79 @@ public class Command
         }
 
         IsPublic = !defaultPrivate;
+    }
+
+    public List<string> GetAutoParamCandidates(string[] args)
+    {
+        if (AutoParams == null) return new List<string>();
+
+        if (AutoParams is DynamicAutoParams dynamicParams)
+        {
+            return dynamicParams.GetCandidates(args, this);
+        }
+
+        return GetCandidatesRecursive(AutoParams, args, 0);
+    }
+
+    private List<string> GetCandidatesRecursive(object currentLevel, string[] args, int depth)
+    {
+        if (depth >= args.Length)
+        {
+            return currentLevel switch
+            {
+                Dictionary<string, object> dict => dict.Keys.ToList(),
+                List<string> list => list,
+                List<List<string>> listOfLists when depth < listOfLists.Count => listOfLists[depth],
+                List<List<string>> listOfLists => listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] : new List<string>(),
+                _ => null
+            };
+        }
+
+        var currentArg = args[depth];
+
+        switch (currentLevel)
+        {
+            case Dictionary<string, object> dict:
+                if (dict.ContainsKey(currentArg))
+                {
+                    return GetCandidatesRecursive(dict[currentArg], args, depth + 1);
+                }
+                else
+                {
+                    return dict.Keys.ToList();
+                }
+
+            case List<List<string>> listOfLists:
+                if (depth < listOfLists.Count)
+                {
+                    var currentList = listOfLists[depth];
+                    if (currentList.Contains(currentArg))
+                    {
+                        return GetCandidatesRecursive(listOfLists, args, depth + 1);
+                    }
+                    else
+                    {
+                        return currentList;
+                    }
+                }
+                else
+                {
+                    return listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] : null;
+                }
+
+            case List<string> list:
+                if (list.Contains(currentArg))
+                {
+                    return null;
+                }
+                else
+                {
+                    return list;
+                }
+
+            default:
+                return null;
+        }
     }
 
     // Private as there has been no cases where this type of visibility was necessary and the cmd was not a toggle
