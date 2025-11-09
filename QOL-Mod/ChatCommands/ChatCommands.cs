@@ -38,17 +38,17 @@ public static class ChatCommands
         new Command("join", JoinCmd, 1, true),
         new Command("lobhp", LobHpCmd, 0, false).SetAlwaysPublic(),
         new Command("lobregen", LobRegenCmd, 0, false).SetAlwaysPublic(),
-        new Command("logvisibility", LogVisibilityCmd, 2, true, new List<List<string>>
-        {
-            new() { "public", "private" },
-            CmdNames
-        }),
         new Command("lowercase", LowercaseCmd, 0, true).MarkAsToggle(),
         new Command("nuky", NukyCmd, 0, true).MarkAsToggle(),
         new Command("maps", MapsCmd, 1, true, MapPresetHandler.MapPresetNames),
         new Command("mute", MuteCmd, 1, true, PlayerUtils.PlayerColorsParams),
         new Command("music", MusicCmd, 1, true, new List<string>(4) { "loop", "play", "skip", "randomize" }).MarkAsToggle(),
         new Command("ouchmsg", OuchCmd, 0, true).MarkAsToggle(),
+        new Command("output", OutPutCmd, 2, true, (List<List<string>>)
+        [
+            [ "public", "private" ],
+            CmdNames
+        ]),
         new Command("ping", PingCmd, 1, true, PlayerUtils.PlayerColorsParams),
         new Command("private", PrivateCmd, 0, true),
         new Command("profile", ProfileCmd, 1, true, PlayerUtils.PlayerColorsParams),
@@ -71,23 +71,23 @@ public static class ChatCommands
         new Command("winnerhp", WinnerHpCmd, 0, false).MarkAsToggle(),
         new Command("winstreak", WinstreakCmd, 0, true).MarkAsToggle(),
 
-        // Multiple parameters examples
-        //new Command("testmulti", null, 1, true, new List<List<string>>
-        //{
-        //    new List<string> { "option1", "option2", "option3" },
-        //    new List<string> { "sub1", "sub2", "sub3" },
-        //    new List<string> { "final1", "final2" }
-        //}),
-        //new Command("testtree", null, 1, true, new Dictionary<string, object>
-        //{
-        //    { "branch1", new Dictionary<string, object>
-        //        {
-        //            { "leaf1", new List<string> { "value1", "value2" } },
-        //            { "leaf2", new List<string> { "value3", "value4" } }
-        //        }
-        //    },
-        //    { "branch2", new List<string> { "optionA", "optionB" } }
-        //}),
+         //Multiple parameters examples
+        new Command("testmulti", null, 1, true, new List<List<string>>
+        {
+            new List<string> { "option1", "option2", "option3" },
+            new List<string> { "sub1", "sub2", "sub3" },
+            new List<string> { "final1", "final2" }
+        }),
+        new Command("testtree", null, 1, true, new Dictionary<string, object>
+        {
+            { "branch1", new Dictionary<string, object>
+                {
+                    { "leaf1", new List<string> { "value1", "value2" } },
+                    { "leaf2", new List<string> { "value3", "value4" } }
+                }
+            },
+            { "branch2", new List<string> { "optionA", "optionB" } }
+        }),
 
         // Cheat cmds below
         new Command("afk", AfkCmd, 0, true).MarkAsToggle(), // TODO: Assign AI to player and auto turn off when anyKeyDown
@@ -105,7 +105,7 @@ public static class ChatCommands
         new Command("execute", ExecuteCmd, 2, true, new List<List<string>>
         {
             PlayerUtils.PlayerColorsParams,
-            CmdNames.Select(cmd => cmd.Substring(1)).ToList()
+            CmdNames //.Select(cmd => cmd.Substring(1)).ToList() // We cannot select here because CmdNames is null now
             // TODO: Dynamic list of chain command's parameters
         }),
         new Command("boss", BossCmd, 1, true, new List<string>(5) { "blue", "red", "yellow", "rainbow", "none" }),
@@ -154,8 +154,17 @@ public static class ChatCommands
         // Reflection hackery so that auto-params for the alias, log, maps, weapons cmds work
         const string autoParamsBackingField = $"<{nameof(Command.AutoParams)}>k__BackingField";
         Traverse.Create(CmdDict["alias"]).Field(autoParamsBackingField).SetValue(CmdNames);
-        Traverse.Create(CmdDict["logprivate"]).Field(autoParamsBackingField).SetValue(CmdNames);
-        Traverse.Create(CmdDict["logpublic"]).Field(autoParamsBackingField).SetValue(CmdNames);
+        Traverse.Create(CmdDict["output"]).Field(autoParamsBackingField).SetValue((List<List<string>>)
+        [
+            [ "public", "private" ],
+            CmdNames
+        ]);
+        Traverse.Create(CmdDict["execute"]).Field(autoParamsBackingField).SetValue((List<List<string>>)
+        [
+            PlayerUtils.PlayerColorsParams,
+            CmdNames.Select(cmd => cmd.Substring(1)).ToList()
+            // TODO: Dynamic list of chain command's parameters
+        ]);
         Traverse.Create(CmdDict["maps"]).Field(autoParamsBackingField).SetValue(MapPresetHandler.MapPresetNames);
         Traverse.Create(CmdDict["weapons"]).Field(autoParamsBackingField).SetValue(GunPresetHandler.GunPresetNames);
 
@@ -751,7 +760,7 @@ public static class ChatCommands
     private static void LobRegenCmd(string[] args, Command cmd)
         => cmd.SetOutputMsg("Lobby Regen: " + Convert.ToBoolean(OptionsHolder.regen));
 
-    private static void LogVisibilityCmd(string[] args, Command cmd)
+    private static void OutPutCmd(string[] args, Command cmd)
     {
         var visibility = args[0].ToLower();
         var targetCmdName = args[1].Replace("\"", "").Replace("/", "")

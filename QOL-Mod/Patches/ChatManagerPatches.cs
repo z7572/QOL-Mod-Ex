@@ -203,7 +203,6 @@ public class ChatManagerPatches
 
             if (matchedCmd != null)
             {
-                // 命令名称切换逻辑（保持不变）
                 var currentParamIndex = allCmds.FindIndex(cmd => cmd.StartsWith(matchedCmd));
                 string newCmd = forward
                     ? (currentParamIndex >= 0 && currentParamIndex < allCmds.Count - 1 ? allCmds[currentParamIndex + 1] : allCmds.First())
@@ -214,7 +213,7 @@ public class ChatManagerPatches
                 chatField.stringPosition = chatField.text.Length;
                 chatField.ActivateInputField();
             }
-            else // 参数切换逻辑
+            else
             {
                 Command cmd = null;
                 var cmdName = txt.Replace(Command.CmdPrefix, "").Split(' ')[0].ToLower();
@@ -224,7 +223,6 @@ public class ChatManagerPatches
 
                 if (cmd == null || cmd.AutoParams == null) return;
 
-                // 移除富文本以获取纯文本
                 var plainText = txt;
                 const string rTxtFmt = "<#000000BB><u>";
                 var richTextPos = plainText.IndexOf(rTxtFmt);
@@ -233,14 +231,12 @@ public class ChatManagerPatches
                     plainText = plainText.Remove(richTextPos);
                 }
 
-                // 正确计算当前参数索引
                 var args = plainText.Replace(Command.CmdPrefix, "").Split(' ');
-                if (args.Length <= 1) return; // 只有命令名，没有参数
+                if (args.Length <= 1) return;
 
-                var currentParamIndex = args.Length - 2; // -2 因为：args[0]是命令名
+                var currentParamIndex = args.Length - 2;
                 var currentParam = args[args.Length - 1];
 
-                // 获取候选参数列表
                 var previousArgs = args.Skip(1).Take(currentParamIndex).ToArray();
                 var candidates = cmd.GetAutoParamCandidates(previousArgs);
 
@@ -271,12 +267,10 @@ public class ChatManagerPatches
 
                 chatField.DeactivateInputField();
 
-                // 正确构建新文本：找到当前参数的开始位置
                 var lastSpaceIndex = plainText.LastIndexOf(' ');
                 if (lastSpaceIndex == -1) return;
 
-                // 保留前面的所有文本，只替换最后一个参数
-                var baseText = plainText.Substring(0, lastSpaceIndex + 1); // 包含空格
+                var baseText = plainText.Substring(0, lastSpaceIndex + 1); // Include space
                 chatField.text = baseText + newParam;
                 chatField.stringPosition = chatField.text.Length;
                 chatField.ActivateInputField();

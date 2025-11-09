@@ -74,7 +74,7 @@ public class Command
 
     public List<string> GetAutoParamCandidates(string[] args)
     {
-        if (AutoParams == null) return new List<string>();
+        if (AutoParams == null) return [];
 
         if (AutoParams is DynamicAutoParams dynamicParams)
         {
@@ -93,8 +93,7 @@ public class Command
                 Dictionary<string, object> dict => dict.Keys.ToList(),
                 List<string> list => list,
                 List<List<string>> listOfLists when depth < listOfLists.Count => listOfLists[depth],
-                List<List<string>> listOfLists => listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] : new List<string>(),
-                _ => null
+                _ => []
             };
         }
 
@@ -127,13 +126,13 @@ public class Command
                 }
                 else
                 {
-                    return listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] : null;
+                    return [];
                 }
 
             case List<string> list:
                 if (list.Contains(currentArg))
                 {
-                    return null;
+                    return [];
                 }
                 else
                 {
@@ -141,7 +140,7 @@ public class Command
                 }
 
             default:
-                return null;
+                return [];
         }
     }
 
