@@ -159,11 +159,11 @@ public static class ChatCommands
 
         // Reflection hackery so that auto-params for the alias, log, maps, weapons cmds work
         const string autoParamsBackingField = $"<{nameof(Command.AutoParams)}>k__BackingField";
-        Traverse.Create(CmdDict["alias"]).Field(autoParamsBackingField).SetValue(CmdNames);
+        Traverse.Create(CmdDict["alias"]).Field(autoParamsBackingField).SetValue(CmdNames.Select(cmd => cmd.Substring(1)).ToList());
         Traverse.Create(CmdDict["output"]).Field(autoParamsBackingField).SetValue((List<List<string>>)
         [
             [ "public", "private" ],
-            CmdNames
+            CmdNames.Select(cmd => cmd.Substring(1)).ToList()
         ]);
         Traverse.Create(CmdDict["execute"]).Field(autoParamsBackingField).SetValue((List<List<string>>)
         [
