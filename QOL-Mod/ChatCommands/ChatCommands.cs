@@ -20,7 +20,13 @@ public static class ChatCommands
         //new Command("socket", SocketCmd, 0, true),
         new Command("adv", AdvCmd, 0, false).SetAlwaysPublic(),
         new Command("alias", AliasCmd, 1, true, CmdNames),
-        new Command("blacklist", BlacklistCmd, 0, true, new List<string>(4) { "add", "remove", "list", "clear" }),
+        new Command("blacklist", BlacklistCmd, 0, true, new Dictionary<string, object>
+        {
+            { "add", PlayerUtils.PlayerColorsParams },
+            { "remove", PlayerUtils.PlayerColorsParams },
+            { "list", null },
+            { "clear", null }
+        }),
         new Command("bossmusic", BossMusicCmd, 1, true, new List<string>(5) { "blue", "red", "yellow", "rainbow", "stop" }),
         new Command("bulletcolor", BulletColorCmd, 0, true, new List<string>(8) { "team", "battery", "random", "yellow", "blue", "red", "green", "white" }).MarkAsToggle(),
         new Command("config", ConfigCmd, 1, true, ConfigHandler.GetConfigKeys().ToList()), // Maybe make this a dynamic param and get the type of config keys
@@ -374,15 +380,21 @@ public static class ChatCommands
                 }
                 else // SteamID
                 {
-                    var targetID = Helper.GetIDFromColor(args[1]);
-                    var steamID = Helper.GetSteamID(targetID);
-                    if (Blacklist.AddToBlacklist(steamID.ToString(), Helper.GetPlayerName(steamID)))
+                    var steamID = args[1];
+                    var csteamID = new CSteamID(ulong.Parse(steamID));
+                    if (!csteamID.IsValid())
                     {
-                        cmd.SetOutputMsg($"Added {Helper.GetColorFromID(targetID)} to blacklist.");
+                        cmd.SetLogType(Command.LogType.Warning);
+                        cmd.SetOutputMsg("Invalid CSteamID.");
+                        return;
+                    }
+                    if (Blacklist.AddToBlacklist(steamID.ToString(), Helper.GetPlayerName(csteamID)))
+                    {
+                        cmd.SetOutputMsg($"Added {steamID} to blacklist.");
                     }
                     else
                     {
-                        cmd.SetOutputMsg($"{Helper.GetColorFromID(targetID)} is already blacklisted.");
+                        cmd.SetOutputMsg($"{steamID} is already blacklisted.");
                     }
                 }
                 break;
