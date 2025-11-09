@@ -301,6 +301,19 @@ public static class ConfigHandler
                 cmdNames[i] = Command.CmdPrefix + cmdNames[i].Substring(1);
         };
 
+        var chatfieldProportionEntry = config.Bind(MiscSect,
+            "ChatfieldProportion",
+            0.5f,
+            "Expand the chat field proportionally? (0.25~0.875, 0.5 = Originial size)");
+
+        var chatfieldProportionEntryKey = chatfieldProportionEntry.Definition.Key;
+        EntriesDict[chatfieldProportionEntryKey] = chatfieldProportionEntry;
+
+        chatfieldProportionEntry.SettingChanged += (_, _) =>
+        {
+            ChatManagerPatches.SetChatFieldProportion(chatfieldProportionEntry.Value);
+        };
+
         EntriesDict["AdvertiseMsg"] = config.Bind(MiscSect,
             "AdvertiseMsg",
             "",

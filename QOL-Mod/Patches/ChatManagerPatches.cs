@@ -72,6 +72,16 @@ public class ChatManagerPatches
             Helper.InitValues(__instance, playerID);
         }
         ___chatField.restoreOriginalTextOnEscape = false; // Manually clear text on escape using Update()
+        SetChatFieldProportion(ConfigHandler.GetEntry<float>("ChatfieldProportion"));
+    }
+
+    public static void SetChatFieldProportion(float proportion)
+    {
+        var chatField = Traverse.Create(Helper.LocalChat).Field("chatField").GetValue<TMP_InputField>();
+        var chatFieldRect = chatField.GetComponent<RectTransform>();
+
+        chatFieldRect.anchorMax = new Vector2(proportion, 0.5f);
+        chatFieldRect.anchorMin = new Vector2(1 - proportion, 0.5f);
     }
 
     public static bool UpdateMethodPrefix(ChatManager __instance)
