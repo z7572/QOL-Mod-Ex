@@ -301,18 +301,24 @@ public static class ConfigHandler
                 cmdNames[i] = Command.CmdPrefix + cmdNames[i].Substring(1);
         };
 
-        var chatfieldProportionEntry = config.Bind(MiscSect,
-            "ChatfieldProportion",
+        var chatFieldProportionEntry = config.Bind(MiscSect,
+            "ChatFieldProportion",
             0.5f,
             "Expand the chat field proportionally? (0.25~0.875, 0.5 = Originial size)");
 
-        var chatfieldProportionEntryKey = chatfieldProportionEntry.Definition.Key;
-        EntriesDict[chatfieldProportionEntryKey] = chatfieldProportionEntry;
+        var chatFieldProportionEntryKey = chatFieldProportionEntry.Definition.Key;
+        EntriesDict[chatFieldProportionEntryKey] = chatFieldProportionEntry;
 
-        chatfieldProportionEntry.SettingChanged += (_, _) =>
+        chatFieldProportionEntry.SettingChanged += (_, _) =>
         {
-            ChatManagerPatches.SetChatFieldProportion(chatfieldProportionEntry.Value);
+            ChatManagerPatches.SetChatFieldProportion(chatFieldProportionEntry.Value);
         };
+
+        EntriesDict["EnableChatFieldInLevelEditor"] = config.Bind(MiscSect,
+            "EnableChatFieldInLevelEditor",
+            true,
+            "Enable chat field in Level Editor?");
+
 
         EntriesDict["AdvertiseMsg"] = config.Bind(MiscSect,
             "AdvertiseMsg",

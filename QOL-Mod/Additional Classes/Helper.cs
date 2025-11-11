@@ -409,8 +409,10 @@ public class Helper
     //public static readonly bool IsCustomPlayerColor = Plugin.ConfigCustomColor.Value != new Color(1, 1, 1);
     //public static readonly bool IsCustomName = !string.IsNullOrEmpty(Plugin.ConfigCustomName.Value);
     public static bool SongLoop;
+
     public static List<GameObject> SpawnedWings = [];
     public static GameObject[] HpBars = new GameObject[4];
+    public static GameObject ChatField;
     public static Scene LoadedScene;
     public static Material skyBoxMat;
 
