@@ -97,11 +97,8 @@ public static class ChatCommands
 
         // Cheat cmds below
         new Command("afk", AfkCmd, 0, true).MarkAsToggle(), // TODO: Assign AI to player and auto turn off when anyKeyDown
-        new Command("logpkg", LogPkgCmd, 0, true, new List<List<string>>
+        new Command("logpkg", LogPkgCmd, 0, true, new List<string>[]
         {
-            // TODO: Make this an infinite or dynamic list
-            Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList(),
-            Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList(),
             Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList()
         }).MarkAsToggle(),
         new Command("dmgpkg", DmgPkgCmd, 0, true, PlayerUtils.PlayerColorsParams),

@@ -38,6 +38,7 @@ public class Command
     private readonly Action<string[], Command> _runCmdAction; // Use Action as method will never return anything
     private readonly int _minExpectedArgs; // Minimal # of args required for cmd to function
     private bool _isPublic;
+    private bool _isLastParamInfinite; // Just a mark for enumerable params
     public bool AlwaysPublic;
     public bool AlwaysPrivate;
 
@@ -59,6 +60,11 @@ public class Command
         else if (autoParameters is List<List<string>> AutoParamsByIndex)
         {
             AutoParams = AutoParamsByIndex;
+        }
+        else if (autoParameters is List<string>[] AutoParamsByIndexEnumerable)
+        {
+            AutoParams = AutoParamsByIndexEnumerable.ToList();
+            _isLastParamInfinite = true;
         }
         else if (autoParameters is Dictionary<string, object> AutoParamsTree)
         {
@@ -93,6 +99,7 @@ public class Command
                 Dictionary<string, object> dict => dict.Keys.ToList(),
                 List<string> list => list,
                 List<List<string>> listOfLists when depth < listOfLists.Count => listOfLists[depth],
+                List<List<string>> listOfLists when _isLastParamInfinite => listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] : [],
                 _ => []
             };
         }
@@ -123,6 +130,10 @@ public class Command
                     {
                         return currentList;
                     }
+                }
+                else if (_isLastParamInfinite)
+                {
+                    return listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] : [];
                 }
                 else
                 {
