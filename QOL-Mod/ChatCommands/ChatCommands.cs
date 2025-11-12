@@ -146,9 +146,11 @@ public static class ChatCommands
         new Command("revive", ReviveCmd, 0, true),
         new Command("scrollattack", ScrollAttackCmd, 0, true).MarkAsToggle(),
         new Command("showhp", ShowHpCmd, 0, true).MarkAsToggle(),
-        new Command("sayas", SayAsCmd, 2, true, PlayerUtils.PlayerColorsParams),
-        new Command("sayasinvisible", SayAsInvisibleCmd, 2, true, PlayerUtils.PlayerColorsParams),
-        new Command("summon", SummonCmd, 1, true, new List<string>(3) { "player", "bolt", "zombie" }),
+        new Command("sayas", SayAsCmd, 2, true, new List<List<string>>
+        {
+            PlayerUtils.PlayerColorsParams,
+            new List<string> { "visible", "invisible" }
+        }),        new Command("summon", SummonCmd, 1, true, new List<string>(3) { "player", "bolt", "zombie" }),
         new Command("switchweapon", SwitchWeaponCmd, 0, true).MarkAsToggle(),
         new Command("tp", TeleportCmd, 2, true),
         new Command("win", WinCmd, 0, true, PlayerUtils.PlayerColorsParams),
@@ -1814,22 +1816,46 @@ public static class ChatCommands
     // Say as specified player
     private static void SayAsCmd(string[] args, Command cmd)
     {
-        var playerID = Helper.GetIDFromColor(args[0]);
-        var text = string.Join(" ", args, 1, args.Length - 1);
-        var data = Encoding.UTF8.GetBytes(text);
-        Helper.SendMessageToAllClients(data, P2PPackageHandler.MsgType.PlayerTalked, channel: playerID * 2 + 2 + 1);
-        var syncClientChatMethod = AccessTools.Method(typeof(NetworkPlayer), "SyncClientChat");
-        syncClientChatMethod.Invoke(Helper.GetNetworkPlayer(playerID), [data]);
-    }
+        if (args.Length < 2)
+        {
+            cmd.SetOutputMsg("Usage: /sayas <player> <visible|invisible> <message>");
+            cmd.SetLogType(Command.LogType.Warning);
+            return;
+        }
 
-    // Target player can't see the message they sent
-    private static void SayAsInvisibleCmd(string[] args, Command cmd)
-    {
         var playerID = Helper.GetIDFromColor(args[0]);
-        var text = string.Join(" ", args, 1, args.Length - 1);
+        var visibility = args[1].ToLower();
+        var text = string.Join(" ", args, 2, args.Length - 2);
+
+        if (string.IsNullOrEmpty(text))
+        {
+            cmd.SetOutputMsg("Message cannot be empty!");
+            cmd.SetLogType(Command.LogType.Warning);
+            return;
+        }
+
         var data = Encoding.UTF8.GetBytes(text);
-        Helper.SendMessageToAllClients(data, P2PPackageHandler.MsgType.PlayerTalked, channel: playerID * 2 + 2 + 1,
-            ignoreUserID: Helper.GetSteamID(playerID).m_SteamID);
+
+        if (visibility == "invisible")
+        {
+            // Target player cannot see own sent message
+            Helper.SendMessageToAllClients(data, P2PPackageHandler.MsgType.PlayerTalked,
+                channel: CheatHelper.GetPlayerEventChannel(playerID),
+                ignoreUserID: Helper.GetSteamID(playerID).m_SteamID);
+        }
+        else if (visibility == "visible")
+        {
+            // Target player can see own sent message
+            Helper.SendMessageToAllClients(data, P2PPackageHandler.MsgType.PlayerTalked,
+                channel: CheatHelper.GetPlayerEventChannel(playerID));
+        }
+        else
+        {
+            cmd.SetOutputMsg("Visibility must be 'visible' or 'invisible'");
+            cmd.SetLogType(Command.LogType.Warning);
+            return;
+        }
+
         var syncClientChatMethod = AccessTools.Method(typeof(NetworkPlayer), "SyncClientChat");
         syncClientChatMethod.Invoke(Helper.GetNetworkPlayer(playerID), [data]);
     }
