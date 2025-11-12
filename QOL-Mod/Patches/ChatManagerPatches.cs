@@ -738,6 +738,62 @@ public static class ChatManagerPatches
                         RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
                     }
                 }
+
+                else if (targetCmdParams is HybridAutoParams hybridParams)
+                {
+                    var previousArgs = cmdAndParam.Skip(1).Take(cmdAndParam.Length - 2).ToArray();
+                    var candidates = targetCmd.GetAutoParamCandidates(previousArgs);
+
+                    if (candidates != null && candidates.Count > 0)
+                    {
+                        var match = candidates.FirstOrDefault(p => p.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
+
+                        if (match != null)
+                        {
+                            var matchLen = match.Length;
+
+                            if (paramTxtLen == matchLen)
+                            {
+                                var paramRichTxtStartPos = paramTxt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
+                                if (paramRichTxtStartPos != -1 && paramTxt.Substring(0, paramRichTxtStartPos) == match)
+                                {
+                                    chatField.text = chatField.text.Remove(txtLen - matchLen - rTxtFmt.Length + 1, rTxtFmt.Length);
+                                    return;
+                                }
+
+                                if (Input.GetKeyDown(KeyCode.Tab))
+                                {
+                                    chatField.DeactivateInputField();
+
+                                    var currentIndexInList = candidates.IndexOf(match);
+                                    var newParam = candidates[currentIndexInList];
+
+                                    var lastSpaceIndex = parsedTxt.LastIndexOf(' ');
+                                    if (lastSpaceIndex == -1) return;
+
+                                    var baseText = parsedTxt.Substring(0, lastSpaceIndex + 1);
+                                    chatField.text = baseText + newParam;
+
+                                    chatField.stringPosition = chatField.text.Length;
+                                    chatField.ActivateInputField();
+                                    _canSwitchCmd = txt == parsedTxt;
+                                }
+                                return;
+                            }
+
+                            chatField.richText = true;
+                            chatField.text += rTxtFmt + match.Substring(paramTxtLen);
+                        }
+                        else if (chatField.richText)
+                        {
+                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                        }
+                    }
+                    else if (chatField.richText)
+                    {
+                        RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                    }
+                }
             }
         }
         else if (chatField.richText)

@@ -70,6 +70,10 @@ public class Command
         {
             AutoParams = AutoParamsTree;
         }
+        else if (autoParameters is HybridAutoParams hybridAutoParams)
+        {
+            AutoParams = hybridAutoParams;
+        }
         else
         {
             AutoParams = null;
@@ -100,6 +104,8 @@ public class Command
                 List<string> list => list,
                 List<List<string>> listOfLists when depth < listOfLists.Count => listOfLists[depth],
                 List<List<string>> listOfLists when _isLastParamInfinite => listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] : [],
+                HybridAutoParams hybrid when depth < hybrid.IndexedParams.Count => hybrid.IndexedParams[depth],
+                HybridAutoParams hybrid when hybrid.TreeParams != null => hybrid.TreeParams.Keys.ToList(),
                 _ => []
             };
         }
@@ -148,6 +154,35 @@ public class Command
                 else
                 {
                     return list;
+                }
+
+            case HybridAutoParams hybrid:
+                if (depth < hybrid.IndexedParams.Count)
+                {
+                    var currentList = hybrid.IndexedParams[depth];
+                    if (currentList.Contains(currentArg))
+                    {
+                        return GetCandidatesRecursive(hybrid, args, depth + 1);
+                    }
+                    else
+                    {
+                        return currentList;
+                    }
+                }
+                else if (hybrid.TreeParams != null)
+                {
+                    if (hybrid.TreeParams.ContainsKey(currentArg))
+                    {
+                        return GetCandidatesRecursive(hybrid.TreeParams[currentArg], args, depth + 1);
+                    }
+                    else
+                    {
+                        return hybrid.TreeParams.Keys.ToList();
+                    }
+                }
+                else
+                {
+                    return [];
                 }
 
             default:

@@ -77,7 +77,7 @@ public static class ChatCommands
         new Command("winnerhp", WinnerHpCmd, 0, false).MarkAsToggle(),
         new Command("winstreak", WinstreakCmd, 0, true).MarkAsToggle(),
 
-         //Multiple parameters examples
+        // Multiple parameters examples
         new Command("testmulti", null, 1, true, new List<List<string>>
         {
             new List<string> { "option1", "option2", "option3" },
@@ -94,6 +94,23 @@ public static class ChatCommands
             },
             { "branch2", new List<string> { "optionA", "optionB" } }
         }),
+        new Command("testhybrid", null, 1, true, new HybridAutoParams(
+            new List<List<string>>
+            {
+                new List<string> { "option1", "option2" },
+                new List<string> { "sub1", "sub2" }
+            },
+            new Dictionary<string, object>
+            {
+                { "branch1", new List<string> { "leaf1", "leaf2" } },
+                { "branch2", new Dictionary<string, object>
+                    {
+                        { "nested1", new List<string> { "value1", "value2" } },
+                        { "nested2", new List<string> { "value3", "value4" } }
+                    }
+                }
+            }
+        )),
 
         // Cheat cmds below
         new Command("afk", AfkCmd, 0, true).MarkAsToggle(), // TODO: Assign AI to player and auto turn off when anyKeyDown
