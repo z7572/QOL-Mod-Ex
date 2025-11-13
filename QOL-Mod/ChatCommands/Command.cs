@@ -100,11 +100,12 @@ public class Command
         {
             return currentLevel switch
             {
+                null => [],
                 Dictionary<string, object> dict => dict.Keys.ToList(),
                 List<string> list => list,
-                List<List<string>> listOfLists when depth < listOfLists.Count => listOfLists[depth],
-                List<List<string>> listOfLists when _isLastParamInfinite => listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] : [],
-                HybridAutoParams hybrid when depth < hybrid.IndexedParams.Count => hybrid.IndexedParams[depth],
+                List<List<string>> listOfLists when depth < listOfLists.Count => listOfLists[depth] ?? [],
+                List<List<string>> listOfLists when _isLastParamInfinite => listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] ?? [] : [],
+                HybridAutoParams hybrid when depth < hybrid.IndexedParams.Count => hybrid.IndexedParams[depth] ?? [],
                 HybridAutoParams hybrid when hybrid.TreeParams != null => hybrid.TreeParams.Keys.ToList(),
                 _ => []
             };
@@ -112,12 +113,18 @@ public class Command
 
         var currentArg = args[depth];
 
+        if (currentLevel == null)
+        {
+            return GetCandidatesRecursive(null, args, depth + 1);
+        }
+
         switch (currentLevel)
         {
             case Dictionary<string, object> dict:
                 if (dict.ContainsKey(currentArg))
                 {
-                    return GetCandidatesRecursive(dict[currentArg], args, depth + 1);
+                    var nextLevel = dict[currentArg];
+                    return GetCandidatesRecursive(nextLevel, args, depth + 1);
                 }
                 else
                 {
@@ -128,6 +135,11 @@ public class Command
                 if (depth < listOfLists.Count)
                 {
                     var currentList = listOfLists[depth];
+                    if (currentList == null)
+                    {
+                        return GetCandidatesRecursive(listOfLists, args, depth + 1);
+                    }
+
                     if (currentList.Contains(currentArg))
                     {
                         return GetCandidatesRecursive(listOfLists, args, depth + 1);
@@ -139,7 +151,7 @@ public class Command
                 }
                 else if (_isLastParamInfinite)
                 {
-                    return listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] : [];
+                    return listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] ?? [] : [];
                 }
                 else
                 {
@@ -160,6 +172,10 @@ public class Command
                 if (depth < hybrid.IndexedParams.Count)
                 {
                     var currentList = hybrid.IndexedParams[depth];
+                    if (currentList == null)
+                    {
+                        return GetCandidatesRecursive(hybrid, args, depth + 1);
+                    }
                     if (currentList.Contains(currentArg))
                     {
                         return GetCandidatesRecursive(hybrid, args, depth + 1);
@@ -173,7 +189,8 @@ public class Command
                 {
                     if (hybrid.TreeParams.ContainsKey(currentArg))
                     {
-                        return GetCandidatesRecursive(hybrid.TreeParams[currentArg], args, depth + 1);
+                        var nextLevel = hybrid.TreeParams[currentArg];
+                        return GetCandidatesRecursive(nextLevel, args, depth + 1);
                     }
                     else
                     {

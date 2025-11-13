@@ -73,7 +73,11 @@ public static class ChatCommands
         new Command("uwu", UwuCmd, 0, true).MarkAsToggle(),
         new Command("ver", VerCmd, 0, true),
         new Command("weapons", WeaponsCmd, 1, true, GunPresetHandler.GunPresetNames),
-        new Command("wings", WingsCmd, 1, true, new List<List<string>> { new(){ "blue", "red", "yellow", "rainbow", "none" }, new(){ "add" } }),
+        new Command("wings", WingsCmd, 1, true, (List<List<string>>)
+        [
+            [ "blue", "red", "yellow", "rainbow", "none" ],
+            [ "add" ]
+        ]),
         new Command("winnerhp", WinnerHpCmd, 0, false).MarkAsToggle(),
         new Command("winstreak", WinstreakCmd, 0, true).MarkAsToggle(),
 
@@ -81,6 +85,7 @@ public static class ChatCommands
         new Command("testmulti", null, 1, true, new List<List<string>>
         {
             new List<string> { "option1", "option2", "option3" },
+            null, // Any input allowed
             new List<string> { "sub1", "sub2", "sub3" },
             new List<string> { "final1", "final2" }
         }),
@@ -114,10 +119,7 @@ public static class ChatCommands
 
         // Cheat cmds below
         new Command("afk", AfkCmd, 0, true).MarkAsToggle(), // TODO: Assign AI to player and auto turn off when anyKeyDown
-        new Command("logpkg", LogPkgCmd, 0, true, new List<string>[]
-        {
-            Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList()
-        }).MarkAsToggle(),
+        new Command("logpkg", LogPkgCmd, 0, true, new List<string>[] { Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList() }).MarkAsToggle(),
         new Command("dmgpkg", DmgPkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
         new Command("firepkg", FirePkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
         new Command("bullethell", BulletHellCmd, 0, true, PlayerUtils.PlayerColorsParamsWithAll),
