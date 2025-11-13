@@ -17,32 +17,27 @@ public class HPBarManager : MonoBehaviour
     private TextMeshProUGUI TMPtext;
     private Transform playerNameObj;
 
-    private void Awake()
+    private void Start()
     {
         playerID = gameObject.GetComponent<Controller>().playerID;
         targetRig = gameObject.GetComponentInChildren<Torso>().transform;
         healthHandler = gameObject.GetComponent<HealthHandler>();
         setMovementAbility = gameObject.GetComponent<SetMovementAbility>();
         canvas = transform.Find("GameCanvas").GetComponent<Canvas>();
-    }
 
-    private void Start()
-    {
-        if (MultiplayerManagerAssets.Instance != null)
-        {
-            colorMat = MultiplayerManagerAssets.Instance.Colors[playerID];
-        }
-        else
-        {
+        //if (MultiplayerManagerAssets.Instance != null)
+        //{
+        //    colorMat = MultiplayerManagerAssets.Instance.Colors[playerID];
+        //}
+        //else
+        //{
             colorMat = transform.Find("Renderers/handRenderer").GetComponent<LineRenderer>().material;
-        }
+        //}
         onlinePlayerUI = FindObjectOfType<OnlinePlayerUI>();
         playerNameObj = onlinePlayerUI?.transform.GetChild(playerID);
 
         var newObj = new GameObject($"Player{playerID + 1}HPText");
         TMPtext = newObj.AddComponent<TextMeshProUGUI>();
-        newObj.SetActive(ChatCommands.CmdDict["showhp"].IsEnabled);
-        Helper.HpBars[playerID] = newObj;
 
         // TextMeshProUGUI texts must under the canvas to display
         newObj.transform.SetParent(canvas.transform);
@@ -54,6 +49,9 @@ public class HPBarManager : MonoBehaviour
         TMPtext.font = Resources.Load<TMP_FontAsset>("fonts & materials/MiSans SDF") ?? // SFTGCNText
                        Resources.Load<TMP_FontAsset>("fonts & materials/Anton SDF") ?? TMPtext.font;
         bossBar = Traverse.Create(setMovementAbility).Field("anim").GetValue<CodeStateAnimation>();
+
+        Helper.HpBars[playerID] = newObj;
+        newObj.SetActive(ChatCommands.CmdDict["showhp"].IsEnabled);
     }
 
     private void Update()
@@ -87,6 +85,5 @@ public class HPBarManager : MonoBehaviour
     private void OnDestroy()
     {
         if (TMPtext != null) Destroy(TMPtext.gameObject);
-        Helper.HpBars[playerID] = null;
     }
 }
