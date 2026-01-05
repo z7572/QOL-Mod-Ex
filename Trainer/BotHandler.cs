@@ -6,7 +6,7 @@ using System.IO;
 using HarmonyLib;
 using UnityEngine;
 
-namespace QOL;
+namespace QOL.Trainer;
 
 // Adapted from https://github.com/alexcodito/StickFightTheGameTrainer/blob/master/StickFightTheGameTrainer/Trainer/TrainerLogic/TrainerManager.cs
 class BotHandler : MonoBehaviour

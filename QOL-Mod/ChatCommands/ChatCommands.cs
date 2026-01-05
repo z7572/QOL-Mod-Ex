@@ -10,6 +10,7 @@ using TMPro;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
+using QOL.Trainer;
 
 namespace QOL;
 
@@ -157,7 +158,11 @@ public static class ChatCommands
             PlayerUtils.PlayerColorsParams,
             [ "visible", "invisible" ]
         ]),
-        new Command("summon", SummonCmd, 1, true, new List<string>(3) { "player", "bolt", "zombie" }),
+        new Command("summon", SummonCmd, 1, true, (List<List<string>>)
+        [
+            new List<string> { "player", "bolt", "zombie" },
+            new List<string> { "true", "false" }
+        ]),
         new Command("switchweapon", SwitchWeaponCmd, 0, true).MarkAsToggle(),
         new Command("tp", TeleportCmd, 2, true),
         new Command("win", WinCmd, 0, true, PlayerUtils.PlayerColorsParams),

@@ -627,6 +627,7 @@ public static class ChatManagerPatches
                 }
 
                 // Implement auto-completing multiple parameters
+                #region AutoParamsByIndex
                 else if (targetCmdParams is List<List<string>> AutoParamsByIndex)
                 {
                     var previousArgs = cmdAndParam.Skip(1).Take(cmdAndParam.Length - 2).ToArray();
@@ -674,15 +675,16 @@ public static class ChatManagerPatches
                         }
                         else if (chatField.richText)
                         {
-                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd);
                         }
                     }
                     else if (chatField.richText)
                     {
-                        RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                        RemoveRichTextAndTryRematch(chatField, txt, targetCmd);
                     }
                 }
-
+                #endregion
+                #region AutoParamsTree
                 else if (targetCmdParams is Dictionary<string, object> AutoParamsTree)
                 {
                     var previousArgs = cmdAndParam.Skip(1).Take(cmdAndParam.Length - 2).ToArray();
@@ -730,16 +732,17 @@ public static class ChatManagerPatches
                         }
                         else if (chatField.richText)
                         {
-                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd);
                         }
                     }
                     else if (chatField.richText)
                     {
-                        RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                        RemoveRichTextAndTryRematch(chatField, txt, targetCmd);
                     }
                 }
-
-                else if (targetCmdParams is HybridAutoParams hybridParams)
+                #endregion
+                #region HybridAutoParams
+                else if (targetCmdParams is HybridAutoParams HybridAutoParams)
                 {
                     var previousArgs = cmdAndParam.Skip(1).Take(cmdAndParam.Length - 2).ToArray();
                     var candidates = targetCmd.GetAutoParamCandidates(previousArgs);
@@ -786,14 +789,15 @@ public static class ChatManagerPatches
                         }
                         else if (chatField.richText)
                         {
-                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd);
                         }
                     }
                     else if (chatField.richText)
                     {
-                        RemoveRichTextAndTryRematch(chatField, txt, targetCmd, previousArgs, paramTxt);
+                        RemoveRichTextAndTryRematch(chatField, txt, targetCmd);
                     }
                 }
+                #endregion
             }
         }
         else if (chatField.richText)
@@ -810,7 +814,7 @@ public static class ChatManagerPatches
         }
     }
 
-    private static void RemoveRichTextAndTryRematch(TMP_InputField chatField, string txt, Command targetCmd, string[] previousArgs, string currentParam)
+    private static void RemoveRichTextAndTryRematch(TMP_InputField chatField, string txt, Command targetCmd)
     {
         const string rTxtFmt = "<#000000BB><u>";
         var effectStartPos = txt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
@@ -823,8 +827,8 @@ public static class ChatManagerPatches
         var currentArgs = plainText.Replace(Command.CmdPrefix, "").Split(' ');
         if (currentArgs.Length > 1)
         {
-            currentParam = currentArgs.Last();
-            previousArgs = currentArgs.Skip(1).Take(currentArgs.Length - 2).ToArray();
+            var currentParam = currentArgs.Last();
+            var previousArgs = currentArgs.Skip(1).Take(currentArgs.Length - 2).ToArray();
             var newCandidates = targetCmd.GetAutoParamCandidates(previousArgs);
 
             if (newCandidates != null && newCandidates.Count > 0)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using HarmonyLib;
 using UnityEngine;
+using QOL.Trainer;
 
 namespace QOL.Patches;
 
