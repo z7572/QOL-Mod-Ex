@@ -88,12 +88,18 @@ class ControllerPatches
     [HarmonyPostfix]
     private static void StartPostfix(Controller __instance)
     {
-        if (!__instance.isAI && !__instance.name.ToLower().Contains("snake"))
+        if (/* !__instance.isAI && */!__instance.name.ToLower().Contains("snake"))
         {
-            __instance.gameObject.AddComponent<EdgeArrowManager>();
-            Debug.Log("Added EdgeArrowManager");
-            __instance.gameObject.AddComponent<HPBarManager>();
-            Debug.Log("Added HPBarManager");
+            if (__instance.gameObject.GetComponent<EdgeArrowManager>() == null)
+            {
+                __instance.gameObject.AddComponent<EdgeArrowManager>();
+                Debug.Log("Added EdgeArrowManager");
+            }
+            if (__instance.gameObject.GetComponent<HPBarManager>() == null)
+            {
+                __instance.gameObject.AddComponent<HPBarManager>();
+                Debug.Log("Added HPBarManager");
+            }
         }
         if (__instance.HasControl && !__instance.isAI) // me
         {

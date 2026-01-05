@@ -177,9 +177,10 @@ public class CheatHelper
         {
             var ignoreUserID = (indexIgnore != ushort.MaxValue) ? Helper.ClientData[indexIgnore].ClientID.m_SteamID : 0UL;
             var broadcastData = AppendBulletsToData(data, broadcastPackage, CachedProjectilePackage.CurrentWeaponIndex);
-            Helper.SendMessageToAllClients(broadcastData, P2PPackageHandler.MsgType.PlayerUpdate, false, ignoreUserID,
-                EP2PSend.k_EP2PSendUnreliableNoDelay, channel);
             Debug.Log($"[QOL] Sending projectile packages[{broadcastPackage.Count}] to all players");
+            Helper.SendMessageToAllClients(broadcastData, P2PPackageHandler.MsgType.PlayerUpdate, false, ignoreUserID,
+                EP2PSend.k_EP2PSendReliable, channel);
+            Debug.Log("[QOL] Sended!");
         }
 
         // To single player
@@ -196,10 +197,10 @@ public class CheatHelper
             }
 
             var singleTargetData = AppendBulletsToData(data, targetBullets, CachedProjectilePackage.CurrentWeaponIndex);
-            Helper.SendP2PPacketToUser(targetClient.ClientID, singleTargetData, P2PPackageHandler.MsgType.PlayerUpdate,
-                EP2PSend.k_EP2PSendUnreliableNoDelay, channel);
-
             Debug.Log($"[QOL] Sending projectile packages[{targetBullets.Count}] to player {targetPlayerID}, weaponIndex: {CachedProjectilePackage.CurrentWeaponIndex}");
+            Helper.SendP2PPacketToUser(targetClient.ClientID, singleTargetData, P2PPackageHandler.MsgType.PlayerUpdate,
+                EP2PSend.k_EP2PSendReliable, channel);
+            Debug.Log("[QOL] Sended!");
         }
 
         CachedProjectilePackage.CurrentWeaponIndex = -1;
@@ -324,7 +325,7 @@ public class CheatHelper
         return mousePos;
     }
 
-    public static IEnumerator BulletHell(ushort playerID, ushort targetID, bool isLocalDisplay = false)
+    public static IEnumerator BulletHell(ushort playerID, ushort targetID, bool isLocalDisplay = false, bool sendInSegments = false)
     {
         int i = 0;
         CoroutineRunner.Run(Horizonal());
@@ -336,7 +337,7 @@ public class CheatHelper
             for (short y = 1800; y >= -1800; y -= 25)
             {
                 FirePackage(1000, y, -1, 0, playerID, targetID, 39, isLocalDisplay); // Beam
-                //if (i++ % 10 == 0) yield return null;
+                if (sendInSegments) if (i++ % 10 == 0) yield return null;
             }
             yield return null;
         }
@@ -345,7 +346,7 @@ public class CheatHelper
             for (short x = 1000; x >= -1000; x -= 25)
             {
                 FirePackage(x, 1800, 0, -1, playerID, targetID, 39, isLocalDisplay);
-                //if (i++ % 10 == 0) yield return null;
+                if (sendInSegments) if (i++ % 10 == 0) yield return null;
             }
             yield return null;
         }

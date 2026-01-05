@@ -25,8 +25,6 @@ public class Command
     public string Name { get; }
     public string Option { get; private set; }
     public List<string> Aliases { get; } = new();
-    // TODO: Implement auto-suggested parameters property
-    //public List<string> AutoParams { get; }
     public object AutoParams { get; private set; }
     public bool IsToggle { get; private set; }
     public bool IsEnabled { get; set; }

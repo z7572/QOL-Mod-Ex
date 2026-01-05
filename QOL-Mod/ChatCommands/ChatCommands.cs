@@ -1396,10 +1396,11 @@ public static class ChatCommands
 
     public static void BulletHellCmd(string[] args, Command cmd)
     {
-        // args: targetColor, (isLocalDisplay)
+        // args: targetColor, (isLocalDisplay), (sendInSegments)
         var playerID = ushort.MaxValue;
         var targetID = ushort.MaxValue;
         var isLocalDisplay = false;
+        var sendInSegments = false;
         if (args.Length > 1) isLocalDisplay = bool.Parse(args[1]);
 
         if (MatchmakingHandler.IsNetworkMatch)
@@ -1410,7 +1411,7 @@ public static class ChatCommands
         }
 
         cmd.SetOutputMsg("Beaming: " + Helper.GetColorFromID(targetID));
-        CoroutineRunner.Run(CheatHelper.BulletHell(playerID, targetID, isLocalDisplay));
+        CoroutineRunner.Run(CheatHelper.BulletHell(playerID, targetID, isLocalDisplay, sendInSegments));
     }
 
     public static void BulletRingCmd(string[] args, Command cmd)
@@ -1595,7 +1596,10 @@ public static class ChatCommands
         CheatTextManager.ToggleFeature("HPBar", cmd.IsEnabled);
         foreach (var hpBar in Helper.HpBars)
         {
-            hpBar?.SetActive(cmd.IsEnabled);
+            if (hpBar != null)
+            {
+                hpBar.SetActive(cmd.IsEnabled);
+            }
         }
         cmd.SetOutputMsg("Toggled HP Bar.");
     }
@@ -1872,32 +1876,34 @@ public static class ChatCommands
         if (MatchmakingHandler.IsNetworkMatch)
         {
             cmd.SetLogType(Command.LogType.Warning);
-            cmd.SetOutputMsg("Can't summon in network match!");
+            cmd.SetOutputMsg("Can't summon bots in network match!");
             return;
         }
-        var spawnPcEnabled = true;
-        if (args.Length > 1) spawnPcEnabled = bool.Parse(args[1]);
 
-        switch (args[0])
+        var spawnPcEnabled = true;
+        if (args.Length > 1)
         {
-            case "player":
-                BotHandler.Instance.SpawnBotEnemyPlayer(spawnPcEnabled);
-                cmd.SetOutputMsg("Spawned player");
-                break;
-            case "bolt":
-                BotHandler.Instance.SpawnBotEnemyBolt(spawnPcEnabled);
-                cmd.SetOutputMsg("Spawned bolt");
-                break;
-            case "zombie":
-                BotHandler.Instance.SpawnBotEnemyZombie(spawnPcEnabled);
-                cmd.SetOutputMsg("Spawned zombie");
-                break;
-            default:
-                cmd.SetOutputMsg("Invalid PlayerPrefab!");
-                break;
+            bool.TryParse(args[1], out spawnPcEnabled);
+        }
+
+        string botType = args[0].ToLower();
+
+        if (botType == "player" || botType == "bolt" || botType == "zombie")
+        {
+            if (!BotHandler.Instance.SpawnBot(botType, spawnPcEnabled))
+            {
+                cmd.SetLogType(Command.LogType.Warning);
+                cmd.SetOutputMsg($"Cannot spawn more {botType}!");
+                return;
+            }
+            cmd.SetOutputMsg($"Spawned {botType}.");
+        }
+        else
+        {
+            cmd.SetLogType(Command.LogType.Warning);
+            cmd.SetOutputMsg("Invalid PlayerPrefab!");
         }
     }
-
     private static void SwitchWeaponCmd(string[] args, Command cmd)
     {
         cmd.Toggle();

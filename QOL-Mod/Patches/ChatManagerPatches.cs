@@ -566,7 +566,7 @@ public static class ChatManagerPatches
                 var paramTxt = cmdAndParam[cmdAndParam.Length - 1];
                 var paramTxtLen = paramTxt.Length;
 
-                // TODO: Implement auto-completing multiple parameters
+                // Auto-completing single or multiple parameters
                 var currentParamIndex = cmdAndParam.Length - 2; // skip [0] (cmd)
 
                 if (targetCmdParams is List<string> simpleAutoParams)

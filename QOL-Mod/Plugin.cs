@@ -6,7 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using QOL.Patches;
-using QOL.Patches.BotTest;
+using QOL.Trainer.Patches;
 
 namespace QOL;
 
@@ -20,7 +20,7 @@ public class Plugin : BaseUnityPlugin
         Logger.LogInfo("Plugin " + Guid + " is loaded! [v" + VersionNumber + "]");
         try
         {
-            Harmony harmony = new("monky.QOL"); // Creates harmony instance with identifier
+            Harmony harmony = new("monky.QOL.Ex"); // Creates harmony instance with identifier
             Logger.LogInfo("Applying ChatManager patches...");
             ChatManagerPatches.Patches(harmony);
             Logger.LogInfo("Applying MatchmakingHandler patch...");
@@ -48,7 +48,7 @@ public class Plugin : BaseUnityPlugin
             Logger.LogInfo("Applying MusicHandlerPatch...");
             MusicHandlerPatch.Patch(harmony);
             Logger.LogInfo("Applying MovementPatch...");
-            MovementPatch.Patch(harmony);
+            Patches.MovementPatch.Patch(harmony);
             Logger.LogInfo("Applying MapSelectionHandlerPatch...");
             MapSelectionHandlerPatches.Patch(harmony);
             Logger.LogInfo("Applying BlockHandlerPatch...");

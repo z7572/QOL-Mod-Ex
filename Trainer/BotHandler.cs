@@ -20,8 +20,8 @@ class BotHandler : MonoBehaviour
     }
     protected static BotHandler _instance;
 
-    private static readonly GameManager mGameManager = Traverse.Create(GameManager.Instance.mMultiplayerManager).Field("mGameManager").GetValue<GameManager>();
-    private static readonly HoardHandler hoardHandler = Traverse.Create(mGameManager).Field("hoardHandler").GetValue<HoardHandler>();
+    private static GameManager mGameManager => Traverse.Create(GameManager.Instance.mMultiplayerManager).Field("mGameManager").GetValue<GameManager>();
+    private static HoardHandler hoardHandler => Traverse.Create(mGameManager).Field("hoardHandler").GetValue<HoardHandler>();
 
     private HoardHandler hoardHandlerBolt;
     private HoardHandler hoardHandlerPlayer;
@@ -129,30 +129,31 @@ class BotHandler : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Spawn an NPC that deals and takes damage. 
-    /// </summary>
-    private void SpawnBotPlayer(GameObject playerPrefab)
+    // Spawn an NPC that deals and takes damage. 
+    private bool SpawnBotPlayer(GameObject playerPrefab)
     {
         var controllerHandler = Traverse.Create(mGameManager).Field("controllerHandler").GetValue<ControllerHandler>();
-        if (controllerHandler.ActivePlayers.Count >= 4) return;
+
+        if (controllerHandler.ActivePlayers.Count >= 4)
+        {
+            return false;
+        }
 
         var spawnPosition = Vector3.up * 8f;
         var spawnRotation = Quaternion.identity;
         var playerId = controllerHandler.ActivePlayers.Count;
+
         var playerColors = MultiplayerManagerAssets.Instance.Colors;
+
         var playerObject = Instantiate(playerPrefab, spawnPosition, spawnRotation);
+
         var playerController = playerObject.GetComponent<Controller>();
 
-        // Load player prefab component
         var playerPrefabSetMovementAbilityComponent = MultiplayerManagerAssets.Instance.PlayerPrefab.GetComponent<SetMovementAbility>();
 
-        // Add required SetMovementAbility if it's missing.
         if (playerObject.GetComponent<SetMovementAbility>() == null)
         {
             var hoardHandlerSetMovementAbilityComponent = playerObject.AddComponent<SetMovementAbility>();
-            //hoardHandlerSetMovementAbilityComponent.abilities = playerPrefabSetMovementAbilityComponent.abilities;
-            //hoardHandlerSetMovementAbilityComponent.bossHealth = playerPrefabSetMovementAbilityComponent.bossHealth;
             Traverse.Create(hoardHandlerSetMovementAbilityComponent).Field("abilities").SetValue(playerPrefabSetMovementAbilityComponent.abilities);
             Traverse.Create(hoardHandlerSetMovementAbilityComponent).Field("bossHealth").SetValue(playerPrefabSetMovementAbilityComponent.bossHealth);
         }
@@ -160,8 +161,10 @@ class BotHandler : MonoBehaviour
         var playerLineRenderers = playerObject.GetComponentsInChildren<LineRenderer>();
         for (var i = 0; i < playerLineRenderers.Length; i++)
         {
-            //playerLineRenderers[i].sharedMaterial = playerColors[playerId];
-            Traverse.Create(playerLineRenderers[i]).Field("sharedMaterial").SetValue(playerColors[playerId]);
+            if (playerId < playerColors.Length && playerColors[playerId] != null)
+            {
+                playerLineRenderers[i].sharedMaterial = playerColors[playerId];
+            }
         }
 
         var playerSpriteRenderers = playerObject.GetComponentsInChildren<SpriteRenderer>();
@@ -169,87 +172,90 @@ class BotHandler : MonoBehaviour
         {
             if (spriteRenderer.transform.tag != "DontChangeColor")
             {
-                //spriteRenderer.color = playerColors[playerId].color;
-                Traverse.Create(spriteRenderer).Field("color").SetValue(playerColors[playerId].color);
+                if (playerId < playerColors.Length && playerColors[playerId] != null)
+                {
+                    spriteRenderer.color = playerColors[playerId].color;
+                    if (!spriteRenderer.enabled)
+                    {
+                        spriteRenderer.enabled = true;
+                    }
+                }
             }
         }
 
         var characterInformation = playerObject.GetComponent<CharacterInformation>();
-        //characterInformation.myMaterial = playerColors[playerId];
-        //characterInformation.enabled = true;
-        Traverse.Create(characterInformation).Field("myMaterial").SetValue(playerColors[playerId]);
-        Traverse.Create(characterInformation).Field("enabled").SetValue(true);
+        if (characterInformation != null)
+        {
+            Traverse.Create(characterInformation).Field("myMaterial").SetValue(playerColors[playerId]);
+            Traverse.Create(characterInformation).Field("enabled").SetValue(true);
+        }
 
-        playerController.AssignNewDevice(null, false); // Uninitialized mPlayerActions causes NULL reference exception in Controller.Update. 
-        //playerController.playerID = playerId;
-        //playerController.isAI = true;
-        //playerController.enabled = true;
-        //playerController.inactive = false;
-        Traverse.Create(playerController).Field("playerID").SetValue(playerId);
-        Traverse.Create(playerController).Field("isAI").SetValue(true);
-        Traverse.Create(playerController).Field("enabled").SetValue(true);
-        Traverse.Create(playerController).Field("inactive").SetValue(false);
-        playerController.SetCollision(true);
+        if (playerController != null)
+        {
+            playerController.AssignNewDevice(null, false);
+
+            Traverse.Create(playerController).Field("playerID").SetValue(playerId);
+            Traverse.Create(playerController).Field("isAI").SetValue(true);
+            Traverse.Create(playerController).Field("enabled").SetValue(true);
+            Traverse.Create(playerController).Field("inactive").SetValue(false);
+
+            playerController.SetCollision(true);
+        }
+        else
+        {
+            Debug.LogError("PlayerController is null");
+            return false;
+        }
 
         var startMethod = AccessTools.Method(typeof(Controller), "Start");
-        startMethod.Invoke(playerController, null); // Stops the bot from 'flying away' (glitch workaround for private static  m_Players)
-        //playerController.Start();
-
-        // WIP Tests 
-        //
-        //MultiplayerManager.SpawnPlayerDummy((byte)playerId);
-        //playerObject.FetchComponent<NetworkPlayer>().InitNetworkSpawnID((ushort)playerId);
-        //UnityEngine.Object.FindObjectOfType<MultiplayerManager>().PlayerControllers.Add(playerController);
-        //private static  UpdateLocalClientsData(playerId, playerObject);
-        //private static  m_Players[playerId] = playerController;
-        //
+        if (startMethod != null)
+        {
+            startMethod.Invoke(playerController, null);
+        }
 
         controllerHandler.players.Add(playerController);
-    mGameManager.RevivePlayer(playerController, true);
+
+        mGameManager.RevivePlayer(playerController, true);
+
+        return true;
     }
 
-    public void SpawnBotEnemyPlayer(bool spawnPcEnabled = true)
+    public bool SpawnBot(string botType, bool spawnPcEnabled = true)
     {
+        GameObject prefabToUse = null;
+        GameObject hoardCharToUse = null;
+
+        switch (botType.ToLower())
+        {
+            case "player":
+                prefabToUse = MultiplayerManagerAssets.Instance.PlayerPrefab;
+                hoardCharToUse = hoardHandlerPlayer.character;
+                break;
+            case "bolt":
+                prefabToUse = hoardHandlerBolt.character;
+                hoardCharToUse = hoardHandlerBolt.character;
+                break;
+            case "zombie":
+                prefabToUse = hoardHandlerZombie.character;
+                hoardCharToUse = hoardHandlerZombie.character;
+                break;
+            default:
+                Debug.LogWarning($"Unknown bot type: {botType}");
+                return false;
+        }
+
         var spawnAIMethod = AccessTools.Method(typeof(HoardHandler), "SpawnAI");
+
         if (spawnPcEnabled)
         {
-            SpawnBotPlayer(MultiplayerManagerAssets.Instance.PlayerPrefab);
+            if (!SpawnBotPlayer(prefabToUse)) return false;
         }
         else
         {
-            spawnAIMethod.Invoke(hoardHandler, [hoardHandlerPlayer.character]);
+            spawnAIMethod.Invoke(hoardHandler, [hoardCharToUse]);
         }
 
         SetBotStats();
-    }
-
-    public void SpawnBotEnemyZombie(bool spawnPcEnabled = true)
-    {
-        var spawnAIMethod = AccessTools.Method(typeof(HoardHandler), "SpawnAI");
-        if (spawnPcEnabled)
-        {
-            SpawnBotPlayer(hoardHandlerZombie.character);
-        }
-        else
-        {
-            spawnAIMethod.Invoke(hoardHandler, [hoardHandlerZombie.character]);
-        }
-
-        SetBotStats();
-    }
-
-    public void SpawnBotEnemyBolt(bool spawnPcEnabled = true)
-    {
-        var spawnAIMethod = AccessTools.Method(typeof(HoardHandler), "SpawnAI");
-        if (spawnPcEnabled)
-        {
-            SpawnBotPlayer(hoardHandlerBolt.character);
-        }
-        else
-        {
-            spawnAIMethod.Invoke(hoardHandler, [hoardHandlerBolt.character]);
-        }
-
-        SetBotStats();
+        return true;
     }
 }
