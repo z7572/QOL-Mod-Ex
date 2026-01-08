@@ -104,7 +104,7 @@ public static class ChatManagerPatches
 
     [HarmonyPatch(typeof(ChatManager), "Start")]
     [HarmonyPostfix]
-    private static void ChatManagerStartPostfix(ChatManager __instance)
+    private static void StartPostfix(ChatManager __instance)
     {
         if (!ConfigHandler.GetEntry<bool>("EnableChatFieldInLevelEditor")) return;
 
@@ -121,7 +121,7 @@ public static class ChatManagerPatches
     static GameObject _chatField;
     [HarmonyPatch(typeof(WorkshopStateHandler), "StartPlayMode")]
     [HarmonyPrefix]
-    private static void StartPlayModePrefix()
+    private static void WorkshopStateHandlerStartPlayModePrefix()
     {
         if (!ConfigHandler.GetEntry<bool>("EnableChatFieldInLevelEditor")) return;
 
@@ -144,20 +144,30 @@ public static class ChatManagerPatches
     public static void StartMethodPostfix(ChatManager __instance, ref TMP_InputField ___chatField, NetworkPlayer ___m_NetworkPlayer)
     {
         var playerID = ushort.MaxValue;
+        var controller = __instance.transform.root.GetComponentInChildren<Controller>();
+        if (controller == null || controller.IsAI()) return;
 
         try
         {
             playerID = ___m_NetworkPlayer.NetworkSpawnID;
         }
-        catch
+        catch (Exception ex)
         {
             Helper.LocalChat = __instance;
         }
         finally
         {
-            // Assigns m_NetworkPlayer value to Helper.localNetworkPlayer if networkPlayer is ours
+            if (playerID != ushort.MaxValue)
+                // Assigns m_NetworkPlayer value to Helper.localNetworkPlayer if networkPlayer is ours
+                Debug.Log($"Init values with playerID: {playerID}");
+            else
+                // Assign other local values to Helper
+                Debug.Log("Init values locally");
+
+            // Local/Network check in this method
             Helper.InitValues(__instance, playerID);
         }
+
         ___chatField.restoreOriginalTextOnEscape = false; // Manually clear text on escape using Update()
         SetChatFieldProportion(ConfigHandler.GetEntry<float>("ChatFieldProportion"));
     }
@@ -191,7 +201,7 @@ public static class ChatManagerPatches
         else
         {
             var controller = __instance.transform.root.gameObject.GetComponent<Controller>();
-            if (controller.HasControl && !controller.isAI)
+            if (controller.HasControl && !controller.IsAI())
             {
                 UpdateKeybinds();
             }

@@ -16,6 +16,7 @@ public class HPBarManager : MonoBehaviour
     private Material colorMat;
     private TextMeshProUGUI TMPtext;
     private Transform playerNameObj;
+    private bool isNPC = false;
 
     private void Start()
     {
@@ -25,13 +26,20 @@ public class HPBarManager : MonoBehaviour
         setMovementAbility = gameObject.GetComponent<SetMovementAbility>();
         canvas = transform.Find("GameCanvas").GetComponent<Canvas>();
 
+        if (playerID == -1)
+        {
+            // TODO
+            isNPC = true;
+            Destroy(this);
+        }
+
         //if (MultiplayerManagerAssets.Instance != null)
         //{
         //    colorMat = MultiplayerManagerAssets.Instance.Colors[playerID];
         //}
         //else
         //{
-            colorMat = transform.Find("Renderers/handRenderer").GetComponent<LineRenderer>().material;
+        colorMat = transform.Find("Renderers/handRenderer").GetComponent<LineRenderer>().material;
         //}
         onlinePlayerUI = FindObjectOfType<OnlinePlayerUI>();
         playerNameObj = onlinePlayerUI?.transform.GetChild(playerID);

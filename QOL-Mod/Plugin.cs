@@ -6,7 +6,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using QOL.Patches;
-using QOL.Trainer.Patches;
 
 namespace QOL;
 
@@ -53,8 +52,6 @@ public class Plugin : BaseUnityPlugin
             MapSelectionHandlerPatches.Patch(harmony);
             Logger.LogInfo("Applying BlockHandlerPatch...");
             BlockHandlerPatch.Patch(harmony);
-            Logger.LogInfo("Applying AIPatch...");
-            AIPatch.Patch(harmony);
             Logger.LogInfo("Applying other patches...");
             harmony.PatchAll();
         }
@@ -141,7 +138,7 @@ public class Plugin : BaseUnityPlugin
         modTextTMP.richText = true;
     }
 
-    public const string VersionNumber = "1.21.4"; // Version number
+    public const string VersionNumber = "1.22.0"; // Version number
     public const string Guid = "monky.plugins.QOL";
     public static string NewUpdateVerCode = "";
 

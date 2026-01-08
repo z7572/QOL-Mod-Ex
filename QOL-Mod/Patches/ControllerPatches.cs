@@ -56,7 +56,7 @@ class ControllerPatches
 
     public static void UpdateMethodPostfix(Controller __instance)
     {
-        if (__instance.HasControl && !__instance.isAI)
+        if (__instance.HasControl && !__instance.IsAI())
         {
             if (!ChatManager.isTyping)
             {
@@ -101,7 +101,7 @@ class ControllerPatches
                 Debug.Log("Added HPBarManager");
             }
         }
-        if (__instance.HasControl && !__instance.isAI) // me
+        if (__instance.HasControl && !__instance.IsAI()) // me
         {
             Helper.controller = __instance;
             __instance.gameObject.AddComponent<CheatManager>();

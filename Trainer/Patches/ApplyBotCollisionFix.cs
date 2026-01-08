@@ -26,7 +26,7 @@ public static class ApplyBotCollisionFix
                 instructionList[i + 1].opcode == OpCodes.Ldfld && instructionList[i + 1].operand == isAiField &&
                 (instructionList[i + 2].opcode == OpCodes.Brfalse || instructionList[i + 2].opcode == OpCodes.Brfalse_S))
             {
-                targetIndex = i + 1; // 定位到 ldfld isAI 之后
+                targetIndex = i + 1;
                 break;
             }
         }
@@ -37,10 +37,8 @@ public static class ApplyBotCollisionFix
             var newInstructions = new List<CodeInstruction>
             {
                 new CodeInstruction(OpCodes.Ldarg_0),
-                new CodeInstruction(OpCodes.Ldfld, playerIdField),
-                new CodeInstruction(OpCodes.Ldc_I4_0),
-                new CodeInstruction(OpCodes.Clt),
-                new CodeInstruction(OpCodes.And),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ApplyBotCollisionFix), nameof(IsRealBot))),
+                new CodeInstruction(OpCodes.And), // 最终逻辑: isAI && IsRealBot
                 originalBrFalse.Clone()
             };
 
@@ -50,5 +48,9 @@ public static class ApplyBotCollisionFix
         }
 
         return instructionList;
+    }
+    public static bool IsRealBot(Controller c)
+    {
+        return c.playerID < 0 || c.GetComponent<AFKManager>() != null;
     }
 }

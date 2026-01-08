@@ -27,4 +27,6 @@ public static class Extensions
         }
         return dict;
     }
+
+    public static bool IsAI(this Controller controller) => controller.isAI && controller.GetComponent<AFKManager>() == null;
 }

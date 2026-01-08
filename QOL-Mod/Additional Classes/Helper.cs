@@ -61,7 +61,7 @@ public class Helper
         {
             foreach (Controller controller in controllerHandler.ActivePlayers)
             {
-                if (controller.HasControl && !controller.isAI)
+                if (controller.HasControl && !controller.IsAI())
                 {
                     return controller;
                 }
@@ -104,7 +104,10 @@ public class Helper
 
             WeaponSelectHandler = UnityEngine.Object.FindObjectOfType<WeaponSelectionHandler>();
 
-            Debug.Log("Assigned the localNetworkPlayer!: " + networkPlayer.NetworkSpawnID);
+            if (networkPlayer == null)
+                Debug.LogError("Failed to get networkPlayer!");
+            else
+                Debug.Log("Assigned the localNetworkPlayer!: " + networkPlayer.NetworkSpawnID);
         }
 
         TMPText = Traverse.Create(__instance).Field("text").GetValue<TextMeshPro>();

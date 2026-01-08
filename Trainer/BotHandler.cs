@@ -29,14 +29,14 @@ class BotHandler : MonoBehaviour
     private IList<Weapon> _weaponComponents;
 
     private readonly float AiDamageMultiplier = 1f;
-    private readonly float AiPunchForce = 120000f;
-    private readonly float AiPunchTime = 0.1f;
-    private readonly float AiMovementForceMultiplier = 4000f;
+    private readonly float AiPunchForce = 100000f;
+    private readonly float AiPunchTime = 0.15f;
+    private readonly float AiMovementForceMultiplier = 3000f;
     private readonly float AiMovementJumpForceMultiplier = 25.0f;
 
     private void Awake()
     {
-        BotHandler._instance = this;
+        _instance = this;
     }
 
     private void Start()

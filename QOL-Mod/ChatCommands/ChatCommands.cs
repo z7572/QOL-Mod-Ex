@@ -1464,9 +1464,21 @@ public static class ChatCommands
         var AI = controller.GetComponent<AI>();
 
         AI.enabled = !AI.enabled;
-        cmd.IsEnabled = AI.enabled;
-        CheatTextManager.ToggleFeature("AFK", AI.enabled);
+        if (AI.enabled)
+        {
+            // We need to mention that we cannot control the player while controller.isAI is true
+            // So we need to add a component to exit ai mode when player gives input
+            controller.isAI = true;
+            controller.gameObject.AddComponent<AFKManager>();
+        }
+        else
+        {
+            controller.isAI = false;
+            Object.Destroy(controller.gameObject.GetComponent<AFKManager>());
+        }
 
+        CheatTextManager.ToggleFeature("AFK", AI.enabled);
+        cmd.IsEnabled = AI.enabled;
         cmd.SetOutputMsg("Toggled AFK.");
     }
 
@@ -1502,7 +1514,10 @@ public static class ChatCommands
             {
                 Helper.controller = Helper.GetControllerFromID(playerID);
                 Helper.networkPlayer = Helper.GetNetworkPlayer(playerID);
-                CmdDict[targetCommand].Execute(argsToExecute);
+
+                // TODO: Fix local chat reference
+                //Helper.LocalChat = 
+                //CmdDict[targetCommand].Execute(argsToExecute);
             }
             finally
             {
