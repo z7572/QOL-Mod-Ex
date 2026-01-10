@@ -38,6 +38,8 @@ class WeaponPatches
             loseWeaponOnReload = __instance.loseWeaponOnReload
         };
 
+        if (__instance.transform.root.GetComponent<CheatManager>() == null) return;
+
         if (ChatCommands.CmdDict["norecoil"].IsEnabled)
         {
             __instance.spread = 0;
@@ -63,6 +65,8 @@ class WeaponPatches
 
     public static void ActuallyShootPostfix(Weapon __instance, ActuallyShootState __state, ref bool ___losesWeaponAfterTime)
     {
+        if (__instance.transform.root.GetComponent<CheatManager>() == null) return;
+
         if (ChatCommands.CmdDict["norecoil"].IsEnabled)
         {
             __instance.recoil = __state.recoil;

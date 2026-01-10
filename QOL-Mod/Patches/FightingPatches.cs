@@ -31,6 +31,8 @@ class FightingPatches
 
     public static void PickUpWeaponMethodPostfix(Fighting __instance, ref Weapon ___weapon)
     {
+        if (__instance.gameObject.GetComponent<CheatManager>() == null) return;
+
         CheatHelper.SwitcherWeaponIndex = __instance.CurrentWeaponIndex;
         if (ChatCommands.CmdDict["fullauto"].IsEnabled)
         {
@@ -41,7 +43,7 @@ class FightingPatches
             bool losesWeaponAfterTime = Traverse.Create(___weapon).Field("losesWeaponAfterTime").GetValue<bool>();
             if (losesWeaponAfterTime)
             {
-                ___weapon.loseWeaponCurrentTime = float.MinValue;
+                ___weapon.loseWeaponCurrentTime = float.MinValue; // Boss weapons
             }
             if (___weapon.isActive)
             {
@@ -52,6 +54,8 @@ class FightingPatches
 
     public static void AttackMethodPrefix(Fighting __instance, ref Weapon ___weapon, ref int ___bulletsLeft)
     {
+        if (__instance.gameObject.GetComponent<CheatManager>() == null) return;
+
         if (___weapon != null)
         {
             if (ChatCommands.CmdDict["fastfire"].IsEnabled) __instance.counter = 10f;
@@ -70,6 +74,8 @@ class FightingPatches
 
     public static void GrabWeaponMethodPrefix(Fighting __instance)
     {
+        if (__instance.gameObject.GetComponent<CheatManager>() == null) return;
+
         if (ChatCommands.CmdDict["quickdraw"].IsEnabled)
         {
             originalFullAuto = __instance.weapon.fullAuto;
@@ -79,6 +85,8 @@ class FightingPatches
 
     public static void AttachHandMethodPrefix(Fighting __instance)
     {
+        if (__instance.gameObject.GetComponent<CheatManager>() == null) return;
+
         if (ChatCommands.CmdDict["quickdraw"].IsEnabled)
         {
             __instance.fullAuto = originalFullAuto;
