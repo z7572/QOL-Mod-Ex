@@ -1,6 +1,8 @@
 ﻿using HarmonyLib;
 using UnityEngine;
 
+namespace QOL.Trainer.Patches;
+
 // Fix for AFK players not taking damage due to missing AI component in HealthHandler
 [HarmonyPatch(typeof(HealthHandler), "TakeDamage", [typeof(float), typeof(Controller), typeof(DamageType), typeof(bool), typeof(Vector3), typeof(Vector3)])]
 public static class AFKDamageFix
