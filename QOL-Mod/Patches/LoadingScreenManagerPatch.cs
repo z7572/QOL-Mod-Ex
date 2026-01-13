@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using HarmonyLib;
+﻿using HarmonyLib;
 using UnityEngine;
 
 namespace QOL.Patches;
@@ -25,8 +24,7 @@ class LoadingScreenManagerPatch
             __instance.isShowingLoadingScreen = false;
             __instance.part.Stop();
             Debug.LogWarning(type);
-
-            P2PPackageHandlerPatch.CheckPacket(Helper.LastKickPacketSender, true);
+            CheatHelper.CheckPacket(Helper.LastKickPacketSender, true);
 
             return false;
         }

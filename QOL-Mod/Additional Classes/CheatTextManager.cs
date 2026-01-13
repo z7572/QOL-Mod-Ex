@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using TMPro;
 using UnityEngine;
@@ -9,7 +10,13 @@ namespace QOL;
 
 public class CheatTextManager : MonoBehaviour
 {
-    private static readonly Dictionary<string, string> activeFeatures = new();
+    private struct FeatureData
+    {
+        public string Name;
+        public string Info;
+    }
+
+    private static readonly Dictionary<Command, FeatureData> activeFeatures = new();
     private static TextMeshProUGUI cheatTextTMP;
     private static TextMeshProUGUI cheatTextTMP2;
 
@@ -49,31 +56,61 @@ public class CheatTextManager : MonoBehaviour
         tmpComponent.richText = true;
     }
 
-    public static void ToggleFeature(string featureName, bool isEnabled, string featureInfo = "")
+    public static void ToggleFeature(Command cmd, bool isEnabled, string name = "", string info = "")
     {
+        if (cmd == null) return;
+
         if (isEnabled)
         {
-            if (activeFeatures.ContainsKey(featureName))
+            if (string.IsNullOrEmpty(name))
             {
-                activeFeatures[featureName] = featureInfo;
+                if (activeFeatures.ContainsKey(cmd))
+                    name = activeFeatures[cmd].Name;
+                else
+                    name = cmd.Name;
+            }
+
+            var data = new FeatureData { Name = name, Info = info };
+
+            if (activeFeatures.ContainsKey(cmd))
+            {
+                activeFeatures[cmd] = data;
             }
             else
             {
-                activeFeatures.Add(featureName, featureInfo);
+                activeFeatures.Add(cmd, data);
             }
         }
         else
         {
-            activeFeatures.Remove(featureName);
+            activeFeatures.Remove(cmd);
         }
 
         UpdateCheatText();
     }
 
+    public static void ClearCheats()
+    {
+        var commandsToRemove = new List<Command>();
+        foreach (var cmd in activeFeatures.Keys)
+        {
+            if (cmd.IsCheat)
+            {
+                cmd.IsEnabled = false;
+                commandsToRemove.Add(cmd);
+            }
+        }
+        foreach (var cmd in commandsToRemove)
+        {
+            activeFeatures.Remove(cmd);
+        }
+        UpdateCheatText();
+    }
+
     private static void UpdateCheatText()
     {
-        var featuresList = activeFeatures
-            .Select(kv => FormatFeatureText(kv.Key, kv.Value))
+        var featuresList = activeFeatures.Values
+            .Select(data => FormatFeatureText(data.Name, data.Info))
             .OrderByDescending(GetTextWidth)
             .ThenBy(s => s)
             .ToList();
@@ -105,7 +142,7 @@ public class RainbowText : MonoBehaviour
     private TextMeshProUGUI m_TextComponent;
     private float m_hueOffset;
     private float colorSpacing = 0.01f;
-    private float hueSpeed = 0.002f;
+    private float hueSpeed = 0.12f;
 
     private void Start()
     {
@@ -114,30 +151,36 @@ public class RainbowText : MonoBehaviour
 
     private void Update()
     {
+        if (m_TextComponent == null) return;
 
-        m_hueOffset += hueSpeed;
+        m_hueOffset += hueSpeed * Time.deltaTime;
         m_hueOffset = Mathf.Repeat(m_hueOffset, 1f);
 
         for (var i = 0; i < m_TextComponent.textInfo.characterCount; ++i)
         {
             var charInfo = m_TextComponent.textInfo.characterInfo[i];
+
+            if (!charInfo.isVisible) continue;
             if (charInfo.color != Color.white) continue;
 
-            //var hue = (_hueOffset + i * colorSpacing) % 1f;
+            var meshIndex = m_TextComponent.textInfo.characterInfo[i].materialReferenceIndex;
+            var vertexIndex = m_TextComponent.textInfo.characterInfo[i].vertexIndex;
+
+            if (m_TextComponent.textInfo.meshInfo[meshIndex].colors32 == null ||
+                vertexIndex + 3 >= m_TextComponent.textInfo.meshInfo[meshIndex].colors32.Length) continue;
+
+            var vertexColors = m_TextComponent.textInfo.meshInfo[meshIndex].colors32;
+
             var hue = Mathf.Repeat(m_hueOffset + (i * colorSpacing), 1f);
             var hsbColor = new HSBColor(hue, 0.5f, 1f);
             var myColor32 = hsbColor.ToColor();
 
-            var meshIndex = m_TextComponent.textInfo.characterInfo[i].materialReferenceIndex;
-            var vertexIndex = m_TextComponent.textInfo.characterInfo[i].vertexIndex;
-            var vertexColors = m_TextComponent.textInfo.meshInfo[meshIndex].colors32;
             vertexColors[vertexIndex + 0] = myColor32;
             vertexColors[vertexIndex + 1] = myColor32;
             vertexColors[vertexIndex + 2] = myColor32;
             vertexColors[vertexIndex + 3] = myColor32;
         }
 
-        if (string.IsNullOrEmpty(m_TextComponent.text)) return;
         m_TextComponent.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
     }
 }

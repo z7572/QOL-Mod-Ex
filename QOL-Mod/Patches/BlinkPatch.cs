@@ -33,7 +33,7 @@ class BlinkPatch
         return codes;
     }
 
-    private static void ClearWings(GameObject gameObject)
+    public static void ClearWings(GameObject gameObject)
     {
         _particleData.Clear();
         _newParticles = gameObject;
@@ -83,22 +83,36 @@ class BlinkPatch
     {
         void Update()
         {
-            foreach (var part in gameObject.GetComponentsInChildren<ParticleSystem>())
+            bool isBusy = false;
+            var particles = GetComponentsInChildren<ParticleSystem>();
+            foreach (var part in particles)
             {
                 if (part.particleCount == 0 && !part.IsAlive())
                 {
                     part.gameObject.SetActive(false);
                 }
-            }
-            for (int i = 0; i < transform.childCount; i++)
-            {
-                var child = transform.GetChild(i);
-                if (child.gameObject.activeSelf || child.GetComponentsInChildren<ParticleSystem>().Any(p => p.gameObject.activeSelf))
+                else
                 {
-                    return;
+                    isBusy = true;
                 }
             }
-            Destroy(gameObject);
+
+            if (isBusy) return;
+
+            var renderers = GetComponentsInChildren<Renderer>();
+            foreach (var r in renderers)
+            {
+                if (!r.enabled) continue;
+                if (r is LineRenderer || r is SpriteRenderer)
+                {
+                    isBusy = true;
+                    break;
+                }
+            }
+            if (!isBusy)
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }

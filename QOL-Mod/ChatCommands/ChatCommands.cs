@@ -67,6 +67,11 @@ public static class ChatCommands
         new Command("rich", RichCmd, 0, true).MarkAsToggle(),
         new Command("say", SayCmd, 1, false),
         new Command("shrug", ShrugCmd, 0, false).SetAlwaysPublic(),
+        new Command("summon", SummonCmd, 1, true, (List<List<string>>)
+        [
+            ["player", "bolt", "zombie"],
+            ["true", "false"]
+        ]),
         new Command("stat", StatCmd, 1, true),
         new Command("suicide", SuicideCmd, 0, false),
         new Command("translate", TranslateCmd, 0, true).MarkAsToggle(),
@@ -81,6 +86,9 @@ public static class ChatCommands
         ]),
         new Command("winnerhp", WinnerHpCmd, 0, false).MarkAsToggle(),
         new Command("winstreak", WinstreakCmd, 0, true).MarkAsToggle(),
+
+#if DEBUG
+        new Command("logpkg", LogPkgCmd, 0, true, new List<string>[] { Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList() }).MarkAsToggle(),
 
         // Multiple parameters examples
         new Command("testmulti", null, 1, true, new List<List<string>>
@@ -117,55 +125,50 @@ public static class ChatCommands
                 }
             }
         )),
+#endif
 
         // Cheat cmds below
-        new Command("afk", AfkCmd, 0, true).MarkAsToggle(), // TODO: Assign AI to player and auto turn off when anyKeyDown
-        new Command("logpkg", LogPkgCmd, 0, true, new List<string>[] { Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList() }).MarkAsToggle(),
-        new Command("dmgpkg", DmgPkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
-        new Command("firepkg", FirePkgCmd, 0, true, PlayerUtils.PlayerColorsParams),
-        new Command("bullethell", BulletHellCmd, 0, true, PlayerUtils.PlayerColorsParamsWithAll),
-        new Command("bulletring", BulletRingCmd, 0, true),
+        new Command("afk", AfkCmd, 0, true).MarkAsToggleCheat(),
+        new Command("dmgpkg", DmgPkgCmd, 0, true, PlayerUtils.PlayerColorsParams).MarkAsCheat(),
+        new Command("firepkg", FirePkgCmd, 0, true, PlayerUtils.PlayerColorsParams).MarkAsCheat(),
+        new Command("bullethell", BulletHellCmd, 0, true, PlayerUtils.PlayerColorsParamsWithAll).MarkAsCheat(),
+        new Command("bulletring", BulletRingCmd, 0, true).MarkAsCheat(),
         new Command("execute", ExecuteCmd, 2, true, new List<List<string>>
         {
             PlayerUtils.PlayerColorsParams,
             CmdNames //.Select(cmd => cmd.Substring(1)).ToList() // We cannot select here because CmdNames is null now
             // TODO: Dynamic list of chain command's parameters
-        }),
-        new Command("boss", BossCmd, 1, true, new List<string>(5) { "blue", "red", "yellow", "rainbow", "none" }),
-        new Command("blockall", BlockAllCmd, 0, true).MarkAsToggle(),
-        new Command("god", GodCmd, 0, true).MarkAsToggle(),
-        new Command("fullauto", FullAutoCmd, 0, true).MarkAsToggle(),
-        new Command("quickdraw", QuickDrawCmd, 0, true).MarkAsToggle(),
-        new Command("norecoil", NoRecoilCmd, 0, true, new List<string>(2) { "all", "notorso" }).MarkAsToggle(),
-        new Command("nospread", NoSpreadCmd, 0, true).MarkAsToggle(),
-        new Command("infiniteammo", InfiniteAmmoCmd, 0, true).MarkAsToggle(),
-        new Command("invisible", InvisibleCmd, 0, true).MarkAsToggle(),
-        new Command("fastfire", FastFireCmd, 0, true).MarkAsToggle(),
-        new Command("fastpunch", FastPunchCmd, 0, true).MarkAsToggle(),
-        new Command("fly", FlyCmd, 0, true).MarkAsToggle(),
-        new Command("gun", GunCmd, 0, true),
+        }).MarkAsCheat(),
+        new Command("boss", BossCmd, 1, true, new List<string>(5) { "blue", "red", "yellow", "rainbow", "none" }).MarkAsCheat(),
+        new Command("blockall", BlockAllCmd, 0, true).MarkAsToggleCheat(),
+        new Command("god", GodCmd, 0, true).MarkAsToggleCheat(),
+        new Command("fullauto", FullAutoCmd, 0, true).MarkAsToggleCheat(),
+        new Command("quickdraw", QuickDrawCmd, 0, true).MarkAsToggleCheat(),
+        new Command("norecoil", NoRecoilCmd, 0, true, new List<string>(2) { "all", "notorso" }).MarkAsToggleCheat(),
+        new Command("nospread", NoSpreadCmd, 0, true).MarkAsToggleCheat(),
+        new Command("infiniteammo", InfiniteAmmoCmd, 0, true).MarkAsToggleCheat(),
+        new Command("invisible", InvisibleCmd, 0, true).MarkAsToggleCheat(),
+        new Command("fastfire", FastFireCmd, 0, true).MarkAsToggleCheat(),
+        new Command("fastpunch", FastPunchCmd, 0, true).MarkAsToggleCheat(),
+        new Command("fly", FlyCmd, 0, true).MarkAsToggleCheat(),
+        new Command("gun", GunCmd, 0, true).MarkAsCheat(),
         new Command("kick", KickCmd, 0, true, (List<List<string>>)
         [
             PlayerUtils.PlayerColorsParams,
             [ "Built-in", "Client_Init", "Workshop_Corruption_Kick", "Workshop_Crash", "Invalid_Map"]
-        ]),
-        new Command("kill", KillCmd, 0, true, PlayerUtils.PlayerColorsParams),
-        new Command("revive", ReviveCmd, 0, true),
-        new Command("scrollattack", ScrollAttackCmd, 0, true).MarkAsToggle(),
-        new Command("showhp", ShowHpCmd, 0, true).MarkAsToggle(),
+        ]).MarkAsCheat(),
+        new Command("kill", KillCmd, 0, true, PlayerUtils.PlayerColorsParams).MarkAsCheat(),
+        new Command("revive", ReviveCmd, 0, true).MarkAsCheat(),
+        new Command("scrollattack", ScrollAttackCmd, 0, true).MarkAsToggleCheat(),
+        new Command("showhp", ShowHpCmd, 0, true).MarkAsToggleCheat(),
         new Command("sayas", SayAsCmd, 2, true, (List<List<string>>)
         [
             PlayerUtils.PlayerColorsParams,
             [ "visible", "invisible" ]
-        ]),
-        new Command("summon", SummonCmd, 1, true, (List<List<string>>)
-        [
-            new List<string> { "player", "bolt", "zombie" },
-            new List<string> { "true", "false" }
-        ]),
-        new Command("switchweapon", SwitchWeaponCmd, 0, true).MarkAsToggle(),
-        new Command("tp", TeleportCmd, 2, true),
-        new Command("win", WinCmd, 0, true, PlayerUtils.PlayerColorsParams),
+        ]).MarkAsCheat(),
+        new Command("switchweapon", SwitchWeaponCmd, 0, true).MarkAsToggleCheat(),
+        new Command("tp", TeleportCmd, 2, true).MarkAsCheat(),
+        new Command("win", WinCmd, 0, true, PlayerUtils.PlayerColorsParams).MarkAsCheat(),
 
     };
 
@@ -537,7 +540,7 @@ public static class ChatCommands
         }
 
         cmd.Toggle(option);
-        CheatTextManager.ToggleFeature("BulletColor", cmd.IsEnabled, option);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "BulletColor", option);
 
         cmd.SetOutputMsg($"Toggled BulletColor{(string.IsNullOrEmpty(cmd.Option) || !cmd.IsEnabled ? "" : ": " + cmd.Option)}.");
     }
@@ -709,7 +712,7 @@ public static class ChatCommands
         {
             cmd.Toggle(option);
         }
-        CheatTextManager.ToggleFeature("Hikotoko", cmd.IsEnabled, option);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "Hikotoko", option);
         cmd.SetOutputMsg("Toggled Hikotoko Wintext");
     }
 
@@ -852,8 +855,9 @@ public static class ChatCommands
         targetCmd.IsPublic = isPublic;
         cmd.SetOutputMsg("Toggled " + visibility + " logging for " + targetCmd.Name + ".");
         SaveCmdVisibilityStates();
-    }   
+    }
 
+#if DEBUG
     // Enables/disables P2P package logging for specified types or all if none specified
     private static void LogPkgCmd(string[] args, Command cmd)
     {
@@ -879,7 +883,7 @@ public static class ChatCommands
         var option = validNames.Count > 0 ? string.Join(" ", validNames.ToArray()) : null;
 
         cmd.Toggle(option);
-        CheatTextManager.ToggleFeature("P2PPackageLogger", cmd.IsEnabled, option ?? "All");
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "P2PPackageLogger", option ?? "All");
 
         if (cmd.IsEnabled)
         {
@@ -893,6 +897,7 @@ public static class ChatCommands
             cmd.SetOutputMsg("Disabled P2P logging");
         }
     }
+#endif
 
     // Enables/Disables chat messages always being sent in lowercase
     private static void LowercaseCmd(string[] args, Command cmd)
@@ -1137,7 +1142,7 @@ public static class ChatCommands
     private static void RainbowCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("Rainbow", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "Rainbow");
         Object.FindObjectOfType<RainbowManager>().enabled = cmd.IsEnabled;
 
         cmd.SetOutputMsg("Toggled PlayerRainbow.");
@@ -1218,6 +1223,40 @@ public static class ChatCommands
         var phrases = ConfigHandler.DeathPhrases;
         var randMsg = phrases[Random.Range(0, phrases.Length)];
         cmd.SetOutputMsg(randMsg);
+    }
+
+    private static void SummonCmd(string[] args, Command cmd)
+    {
+        if (MatchmakingHandler.IsNetworkMatch)
+        {
+            cmd.SetLogType(Command.LogType.Warning);
+            cmd.SetOutputMsg("Can't summon bots in network match!");
+            return;
+        }
+
+        var spawnPcEnabled = true;
+        if (args.Length > 1)
+        {
+            bool.TryParse(args[1], out spawnPcEnabled);
+        }
+
+        string botType = args[0].ToLower();
+
+        if (botType == "player" || botType == "bolt" || botType == "zombie")
+        {
+            if (!BotHandler.Instance.SpawnBot(botType, spawnPcEnabled))
+            {
+                cmd.SetLogType(Command.LogType.Warning);
+                cmd.SetOutputMsg($"Cannot spawn more {botType}!");
+                return;
+            }
+            cmd.SetOutputMsg($"Spawned {botType}.");
+        }
+        else
+        {
+            cmd.SetLogType(Command.LogType.Warning);
+            cmd.SetOutputMsg("Invalid PlayerPrefab!");
+        }
     }
 
     // Enables/disables the autargetStatto-translate system for chat
@@ -1331,7 +1370,6 @@ public static class ChatCommands
     // ****************************************************************************************************
     //                                    Cheat command methods below                                      
     // ****************************************************************************************************
-
     private static void DmgPkgCmd(string[] args, Command cmd)
     {
         var help = "Usage: target";
@@ -1477,8 +1515,8 @@ public static class ChatCommands
             Object.Destroy(controller.gameObject.GetComponent<AFKManager>());
         }
 
-        CheatTextManager.ToggleFeature("AFK", AI.enabled);
         cmd.IsEnabled = AI.enabled;
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "AFK");
         cmd.SetOutputMsg("Toggled AFK.");
     }
 
@@ -1606,14 +1644,14 @@ public static class ChatCommands
     private static void ScrollAttackCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("ScrollAttack", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "ScrollAttack");
         cmd.SetOutputMsg("Toggled ScrollAttack.");
     }
 
     private static void ShowHpCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("HPBar", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "HPBar");
         foreach (var hpBar in Helper.HpBars)
         {
             if (hpBar != null)
@@ -1629,7 +1667,7 @@ public static class ChatCommands
         var controller = Helper.controller;
         cmd.IsEnabled = controller.canFly;
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("Fly", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "Fly");
         controller.canFly = cmd.IsEnabled;
         cmd.SetOutputMsg("Toggled Fly.");
     }
@@ -1637,7 +1675,7 @@ public static class ChatCommands
     private static void GodCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("GodMode", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "GodMode");
         cmd.SetOutputMsg("Toggled GodMode.");
     }
 
@@ -1647,7 +1685,7 @@ public static class ChatCommands
         var weapon = Traverse.Create(fighting).Field("weapon").GetValue<Weapon>();
 
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("FullAuto", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "FullAuto");
         if (cmd.IsEnabled && weapon != null) // Punch shouldn't be fullauto
         {
             fighting.fullAuto = true;
@@ -1664,15 +1702,15 @@ public static class ChatCommands
         if (args.Length == 0 || args[0] != "notorso")
         {
             cmd.Toggle("all");
-            CheatTextManager.ToggleFeature("NoRecoil", cmd.IsEnabled);
+            CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "NoRecoil");
         }
         else
         {
             cmd.Toggle("notorso");
-            CheatTextManager.ToggleFeature("NoRecoil", cmd.IsEnabled, cmd.Option);
+            CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "NoRecoil", cmd.Option);
         }
         CmdDict["nospread"].IsEnabled = false;
-        CheatTextManager.ToggleFeature("NoSpread", false);
+        CheatTextManager.ToggleFeature(CmdDict["nospread"], false, "NoSpread");
         cmd.SetOutputMsg("Toggled NoRecoil.");
     }
 
@@ -1685,42 +1723,42 @@ public static class ChatCommands
             return;
         }
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("NoSpread", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "NoSpread");
         cmd.SetOutputMsg("Toggled NoSpread.");
     }
 
     private static void InfiniteAmmoCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("InfiniteAmmo", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "InfiniteAmmo");
         cmd.SetOutputMsg("Toggled InfiniteAmmo.");
     }
 
     private static void FastFireCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("FastFire", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "FastFire");
         cmd.SetOutputMsg("Toggled FastFire.");
     }
 
     private static void FastPunchCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("FastPunch", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "FastPunch");
         cmd.SetOutputMsg("Toggled FastPunch.");
     }
 
     private static void BlockAllCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("BlockAll", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "BlockAll");
         cmd.SetOutputMsg("Toggled BlockAll.");
     }
 
     private static void InvisibleCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("Invisibility", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "Invisibility");
         cmd.SetOutputMsg("Toggled Invisibility.");
     }
 
@@ -1728,7 +1766,7 @@ public static class ChatCommands
     private static void QuickDrawCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("AutoQuickDraw", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "AutoQuickDraw");
         cmd.SetOutputMsg("Toggled AutoQuickDraw.");
     }
 
@@ -1891,43 +1929,10 @@ public static class ChatCommands
         syncClientChatMethod.Invoke(Helper.GetNetworkPlayer(playerID), [data]);
     }
 
-    private static void SummonCmd(string[] args, Command cmd)
-    {
-        if (MatchmakingHandler.IsNetworkMatch)
-        {
-            cmd.SetLogType(Command.LogType.Warning);
-            cmd.SetOutputMsg("Can't summon bots in network match!");
-            return;
-        }
-
-        var spawnPcEnabled = true;
-        if (args.Length > 1)
-        {
-            bool.TryParse(args[1], out spawnPcEnabled);
-        }
-
-        string botType = args[0].ToLower();
-
-        if (botType == "player" || botType == "bolt" || botType == "zombie")
-        {
-            if (!BotHandler.Instance.SpawnBot(botType, spawnPcEnabled))
-            {
-                cmd.SetLogType(Command.LogType.Warning);
-                cmd.SetOutputMsg($"Cannot spawn more {botType}!");
-                return;
-            }
-            cmd.SetOutputMsg($"Spawned {botType}.");
-        }
-        else
-        {
-            cmd.SetLogType(Command.LogType.Warning);
-            cmd.SetOutputMsg("Invalid PlayerPrefab!");
-        }
-    }
     private static void SwitchWeaponCmd(string[] args, Command cmd)
     {
         cmd.Toggle();
-        CheatTextManager.ToggleFeature("WeaponSwitch", cmd.IsEnabled);
+        CheatTextManager.ToggleFeature(cmd, cmd.IsEnabled, "WeaponSwitch");
         cmd.SetOutputMsg("Toggled WeaponSwitch.");
     }
 

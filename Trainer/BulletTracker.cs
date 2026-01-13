@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace QOL.Trainer.Patches;
+namespace QOL.Trainer;
 
 public class BulletTracker : MonoBehaviour
 {

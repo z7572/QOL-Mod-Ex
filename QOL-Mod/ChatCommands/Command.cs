@@ -27,6 +27,7 @@ public class Command
     public List<string> Aliases { get; } = new();
     public object AutoParams { get; private set; }
     public bool IsToggle { get; private set; }
+    public bool IsCheat { get; private set; }
     public bool IsEnabled { get; set; }
 
     public static char CmdPrefix = ConfigHandler.GetEntry<string>("CommandPrefix").Length == 1
@@ -237,6 +238,19 @@ public class Command
         return this;
     }
 
+    public Command MarkAsCheat()
+    {
+        IsCheat = true;
+        return this;
+    }
+
+    public Command MarkAsToggleCheat()
+    {
+        IsToggle = true;
+        IsCheat = true;
+        return this;
+    }
+
     public void SetOutputMsg(string msg) => _currentOutputMsg = msg;
     public void SetLogType(LogType type) => _currentLogType = type;
     public void Toggle() => IsEnabled = !IsEnabled;
@@ -264,6 +278,14 @@ public class Command
 
     public void Execute(params string[] args)
     {
+        if (IsCheat && !CheatHelper.CheatEnabled)
+        {
+            _currentLogType = LogType.Warning;
+            _currentOutputMsg = "Cheat is disabled!";
+            Helper.SendModOutput(_currentOutputMsg, _currentLogType, false);
+            return;
+        }
+
         if (args.Length < _minExpectedArgs)
         {
             _currentLogType = LogType.Warning;

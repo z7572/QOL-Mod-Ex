@@ -13,7 +13,7 @@ using UnityEngine.UI;
 
 namespace QOL;
 
-public class Helper
+public static class Helper
 {
     // From stick.plugins.playermanager by Moncak and Kruziiloksu
     public static void JoinSpecificServer(CSteamID lobby)
@@ -263,41 +263,47 @@ public class Helper
         }
     }
 
-    [HarmonyPatch(typeof(P2PPackageHandler), "GetChannelForMsgType")]
-    [HarmonyReversePatch]
-    private static int GetChannelForMsgType(object instance, P2PPackageHandler.MsgType msgType) => 0;
+    private static int GetChannelForMsgType(P2PPackageHandler.MsgType msgType)
+    {
+        var method = AccessTools.Method(typeof(P2PPackageHandler), "GetChannelForMsgType");
+        return (int)method.Invoke(P2PPackageHandler.Instance, [msgType]);
+    }
 
     private static void SendMessageToAllClients(object instance, byte[] data, P2PPackageHandler.MsgType type, bool ignoreServer = false,
         ulong ignoreUserID = 0, EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = 0)
     {
-        var sendPacketToAllMethod = AccessTools.Method(typeof(MultiplayerManager), "SendMessageToAllClients");
-        sendPacketToAllMethod.Invoke(instance, [data, type, ignoreServer, ignoreUserID, sendMethod, channel]);
+        var method = AccessTools.Method(typeof(MultiplayerManager), "SendMessageToAllClients");
+        method.Invoke(instance, [data, type, ignoreServer, ignoreUserID, sendMethod, channel]);
     }
 
     public static void SendMessageToAllClients(byte[] data, P2PPackageHandler.MsgType type, bool ignoreServer = false,
         ulong ignoreUserID = 0, EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = -1)
     {
+#if DEBUG
         if (ChatCommands.CmdDict["logpkg"].IsEnabled)
             Debug.Log(
                 $"[QOL] Sent message to all clients: \n" +
                 $"type: {type}\n" +
                 $"data: {data.ToDecString()}\n" +
                 $"channel: {channel}");
+#endif
         SendMessageToAllClients(gameManager.mMultiplayerManager, data, type, ignoreServer, ignoreUserID, sendMethod,
-                (channel != -1) ? channel : GetChannelForMsgType(P2PPackageHandler.Instance, type));
+                (channel != -1) ? channel : GetChannelForMsgType(type));
     }
 
     public static void SendP2PPacketToUser(CSteamID clientID, byte[] data, P2PPackageHandler.MsgType type,
         EP2PSend sendMethod = EP2PSend.k_EP2PSendReliable, int channel = -1)
     {
+#if DEBUG
         if (ChatCommands.CmdDict["logpkg"].IsEnabled)
             Debug.Log(
                 $"[QOL] Sent message to client: {clientID}\n" +
                 $"type: {type}\n" +
                 $"data: {data.ToDecString()}\n" +
                 $"channel: {channel}");
+#endif
         P2PPackageHandler.Instance.SendP2PPacketToUser(clientID, data, type, sendMethod,
-                (channel != -1) ? channel : GetChannelForMsgType(P2PPackageHandler.Instance, type));
+                (channel != -1) ? channel : GetChannelForMsgType(type));
     }
 
     public static void InitMusic(GameManager __instance)

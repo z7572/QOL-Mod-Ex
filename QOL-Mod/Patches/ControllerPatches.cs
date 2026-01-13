@@ -56,6 +56,8 @@ class ControllerPatches
 
     public static void UpdateMethodPostfix(Controller __instance)
     {
+        if (!CheatHelper.CheatEnabled) return;
+
         if (__instance.HasControl && !__instance.IsAI())
         {
             if (!ChatManager.isTyping)
@@ -104,8 +106,13 @@ class ControllerPatches
         if (__instance.HasControl && !__instance.IsAI()) // me
         {
             Helper.controller = __instance;
-            __instance.gameObject.AddComponent<CheatManager>();
-            Debug.Log("Added CheatManager");
+
+            if (CheatHelper.CheatEnabled)
+            {
+                __instance.gameObject.AddComponent<CheatManager>();
+                Debug.Log("Added CheatManager");
+            }
+
             var barsHandler = Object.FindObjectOfType<BarsHandler>();
             if (barsHandler != null)
             {

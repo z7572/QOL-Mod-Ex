@@ -1,7 +1,8 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
-using System.Reflection.Emit;
 using System.Linq;
+using System.Reflection.Emit;
+using UnityEngine;
 
 namespace QOL.Trainer.Patches
 {
@@ -12,7 +13,7 @@ namespace QOL.Trainer.Patches
         public static IEnumerable<CodeInstruction> AttachTrackerTranspiler(IEnumerable<CodeInstruction> instructions)
         {
             var codes = instructions.ToList();
-            var attachMethod = AccessTools.Method(typeof(AILogic), nameof(AILogic.AttachTracker));
+            var attachMethod = AccessTools.Method(typeof(BulletTrackerPatch), nameof(AttachTracker));
 
             for (int i = 0; i < codes.Count; i++)
             {
@@ -25,6 +26,14 @@ namespace QOL.Trainer.Patches
                 }
             }
             return codes;
+        }
+
+        public static void AttachTracker(GameObject bulletObj)
+        {
+            if (bulletObj != null && bulletObj.GetComponent<BulletTracker>() == null)
+            {
+                bulletObj.AddComponent<BulletTracker>();
+            }
         }
     }
 }

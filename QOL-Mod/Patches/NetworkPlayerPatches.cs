@@ -71,7 +71,7 @@ class NetworkPlayerPatch
             .PlayerObject.GetComponent<NetworkPlayer>()
             .NetworkSpawnID);
             AllowProjectilePacket = false;
-            P2PPackageHandlerPatch.CheckPacket(sender, true);
+            CheatHelper.CheckPacket(sender, true);
             Helper.ShowLoadText($"Blocked {bulletCount} projectiles packets sent from player: {Helper.GetPlayerName(sender)} Blacklisted!");
             return;
         }

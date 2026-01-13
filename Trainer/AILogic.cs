@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 using QOL.Trainer.Patches;
 
@@ -38,14 +39,6 @@ public class AILogic(AI aiInstance)
     public static void UnregisterBullet(RayCastForward bullet)
     {
         if (bullet != null) _bulletCache.Remove(bullet);
-    }
-
-    public static void AttachTracker(GameObject bulletObj)
-    {
-        if (bulletObj != null && bulletObj.GetComponent<BulletTracker>() == null)
-        {
-            bulletObj.AddComponent<BulletTracker>();
-        }
     }
 
     public bool Update(

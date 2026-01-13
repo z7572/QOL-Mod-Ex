@@ -1,5 +1,4 @@
-﻿using InControl;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace QOL;
 

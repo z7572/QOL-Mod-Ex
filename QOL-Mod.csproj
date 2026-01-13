@@ -4,17 +4,27 @@
     <TargetFramework>net35</TargetFramework>
     <AssemblyName>QOL-Mod</AssemblyName>
     <Description>A mod that offers quality-of-life improvements and additions to Stick Fight: The Game.</Description>
-    <Version>1.22.1</Version>
+    <Version>1.22.2</Version>
     <LangVersion>latest</LangVersion>
     <RootNamespace>QOL</RootNamespace>
     <Authors>z7572 (fork)</Authors>
     <Product />
     <Company />
-    <RunPostBuildEvent>Always</RunPostBuildEvent>
-    <Configurations>Release</Configurations>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <Configurations>Release;Debug</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Optimize>True</Optimize>
+	<DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="Properties\protect.crproj" />
     <None Include="QOL-Mod.sln" />
     <None Remove="build.bat" />
     <None Remove="Assembly-CSharp.dll" />
@@ -76,6 +86,10 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy /Y $(TargetPath) $(ProjectDir)\..\..\..\BepInEx\plugins\$(TargetName)\$(TargetFileName)&#xD;&#xA;" />
+    <Exec Command="set &quot;GAME_ROOT=$(ProjectDir)..\..\..&quot;&#xD;&#xA;set &quot;CONFUSER_INPUT=%25GAME_ROOT%25\ConfuserEx\ref&quot;&#xD;&#xA;set &quot;CONFUSER_OUTPUT=%25GAME_ROOT%25\ConfuserEx\Confused&quot;&#xD;&#xA;set &quot;MOD_INSTALL_DIR=%25GAME_ROOT%25\BepInEx\plugins\$(TargetName)&quot;&#xD;&#xA;&#xD;&#xA;if not exist &quot;$(TargetPath)&quot; (&#xD;&#xA;    echo [VS] Error: Target file not found! Build likely failed.&#xD;&#xA;    exit /b 1&#xD;&#xA;)&#xD;&#xA;&#xD;&#xA;if &quot;$(ConfigurationName)&quot; == &quot;Debug&quot; (&#xD;&#xA;    echo [VS] [Debug] Copying raw DLL...&#xD;&#xA;    if not exist &quot;%25MOD_INSTALL_DIR%25&quot; mkdir &quot;%25MOD_INSTALL_DIR%25&quot;&#xD;&#xA;    copy /Y &quot;$(TargetPath)&quot; &quot;%25MOD_INSTALL_DIR%25\$(TargetFileName)&quot;&#xD;&#xA;) else (&#xD;&#xA;    echo [VS] [Release] Starting Obfuscation Pipeline...&#xD;&#xA;&#xD;&#xA;    if not exist &quot;%25CONFUSER_INPUT%25&quot; mkdir &quot;%25CONFUSER_INPUT%25&quot;&#xD;&#xA;    &#xD;&#xA;    copy /Y &quot;$(TargetPath)&quot; &quot;%25CONFUSER_INPUT%25\$(TargetFileName)&quot; &gt;nul&#xD;&#xA;&#xD;&#xA;    echo [VS] Calling Obfuscate.bat...&#xD;&#xA;    cd /d &quot;$(ProjectDir)Properties&quot;&#xD;&#xA;    &#xD;&#xA;    call &quot;Obfuscate.bat&quot;&#xD;&#xA;    &#xD;&#xA;    if errorlevel 1 (&#xD;&#xA;        echo error : Obfuscation script failed!&#xD;&#xA;        echo [VS] Build stopped because Obfuscate.bat returned an error.&#xD;&#xA;        exit /b 1&#xD;&#xA;    )&#xD;&#xA;&#xD;&#xA;    echo [VS] Installing OBFUSCATED DLL...&#xD;&#xA;    if not exist &quot;%25MOD_INSTALL_DIR%25&quot; mkdir &quot;%25MOD_INSTALL_DIR%25&quot;&#xD;&#xA;    copy /Y &quot;%25CONFUSER_OUTPUT%25\$(TargetFileName)&quot; &quot;%25MOD_INSTALL_DIR%25\$(TargetFileName)&quot;&#xD;&#xA;    &#xD;&#xA;    if errorlevel 1 (&#xD;&#xA;        echo error : Failed to copy obfuscated file to game directory.&#xD;&#xA;        exit /b 1&#xD;&#xA;    )&#xD;&#xA;)" />
+  </Target>
+  
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="if exist &quot;$(TargetPath)&quot; del &quot;$(TargetPath)&quot;" />
   </Target>
 </Project>

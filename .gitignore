@@ -367,3 +367,5 @@ FodyWeavers.xsd
 /TextMeshPro-1.0.55.56.0b9.dll
 /UnityEngine.UI.dll
 /.config
+/Properties/Obfuscate.bat
+/Properties/protect.crproj

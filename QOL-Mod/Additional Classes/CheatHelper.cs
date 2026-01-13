@@ -9,11 +9,170 @@ using UnityEngine;
 
 namespace QOL;
 
-public class CheatHelper
+public static class CheatHelper
 {
+    public static bool CheatEnabled
+    {
+        get
+        {
+#if DEBUG
+            return true;
+#else
+            return !MatchmakingHandler.IsNetworkMatch;
+#endif
+        }
+    }
+
     public static int GetPlayerUpdateChannel(ushort playerID) => playerID * 2 + 2;
 
     public static int GetPlayerEventChannel(ushort playerID) => playerID * 2 + 3;
+
+    public static bool IsTrajectoryClear(Vector3 origin, Vector3 velocity, float gravity, float maxDist)
+    {
+        // 模拟参数与计算时保持一致
+        float drag = 0.3f;
+        float dt = 0.05f; // 检测步长可以稍大一点 (0.05s) 以节省性能
+
+        Vector3 currentPos = origin;
+        Vector3 currentVel = velocity;
+        float traveledDist = 0f;
+
+        // 这是一个用于遮挡检测的 LayerMask
+        // 包含: Default(0), Map(23)
+        // 必须排除: Player(玩家自己), Projectile(子弹), IgnoreRaycast
+        int mask = (1 << 0) | (1 << 23);
+
+        // 模拟 2 秒或到达目标距离
+        int maxSteps = 40;
+
+        for (int i = 0; i < maxSteps; i++)
+        {
+            Vector3 nextPos = currentPos;
+            Vector3 nextVel = currentVel;
+
+            // 物理积分
+            nextVel.y -= gravity * dt;
+            float dragFactor = Mathf.Clamp01(1f - drag * dt);
+            nextVel *= dragFactor;
+            nextPos += nextVel * dt;
+
+            // 射线检测这一步 (currentPos -> nextPos)
+            if (Physics.Linecast(currentPos, nextPos, out RaycastHit hit, mask))
+            {
+                // 如果撞到了非自己的东西，说明有遮挡
+                // 忽略很小的物体或透过性物体
+                if (!hit.collider.isTrigger)
+                {
+                    return false; // 路径被遮挡
+                }
+            }
+
+            traveledDist += Vector3.Distance(currentPos, nextPos);
+            if (traveledDist > maxDist) break; // 超出目标距离，不用测了
+
+            currentPos = nextPos;
+            currentVel = nextVel;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Calculates the exact throw direction with drag resistance (based on backtracking simulation)
+    /// </summary>
+    public static Vector3 CalculateSimulatedThrowDir(Vector3 origin, Vector3 target, float gravity)
+    {
+        Vector3 toTarget = target - origin;
+        Vector3 toTargetXZ = new Vector3(toTarget.x, 0f, toTarget.z);
+        float targetDistXZ = toTargetXZ.magnitude;
+        float targetY = toTarget.y;
+
+        // 二分查找最佳仰角 (Pitch)
+        float minAngle = -60f;
+        float maxAngle = 80f;
+        float bestAngle = 0f;
+
+        for (int i = 0; i < 10; i++)
+        {
+            float midAngle = (minAngle + maxAngle) / 2f;
+            float simulatedY = SimulateTrajectoryY(midAngle, targetDistXZ, gravity);
+
+            if (simulatedY < targetY)
+            {
+                minAngle = midAngle; // 打低了，需要抬高
+            }
+            else
+            {
+                maxAngle = midAngle; // 打高了，压低
+            }
+            bestAngle = midAngle;
+        }
+
+        // [修复] 正确获取 Quaternion 的方向向量
+        Quaternion lookRot = Quaternion.LookRotation(toTargetXZ);
+
+        // 获取旋转后的右向量 (用于作为仰角的旋转轴)
+        Vector3 rightDir = lookRot * Vector3.right;
+
+        // 获取旋转后的前向量 (用于作为旋转的基础向量)
+        Vector3 forwardDir = lookRot * Vector3.forward;
+
+        // 计算最终方向：绕着右轴，向上(负角度)旋转 bestAngle 度
+        // 注意：Unity中绕X轴(Right)正旋转通常是向下看，所以抬头需要负角度
+        Vector3 finalDir = Quaternion.AngleAxis(-bestAngle, rightDir) * forwardDir;
+
+        return finalDir;
+    }
+
+    /// <summary>
+    /// 模拟弹道，返回到达指定水平距离时的相对高度 (Y)
+    /// 完全复用游戏内的物理步进逻辑
+    /// Simulate the trajectory, return the relative height (Y) when reaching the specified horizontal distance
+    /// Completely reuse the game's physical step logic
+    /// </summary>
+    private static float SimulateTrajectoryY(float pitchAngleDeg, float targetDistXZ, float gravityAbs)
+    {
+        float v0 = 35f;
+        float drag = 0.3f;
+        float dt = Time.fixedDeltaTime;
+
+        float pitchRad = pitchAngleDeg * Mathf.Deg2Rad;
+        // 分解速度
+        float velXZ = v0 * Mathf.Cos(pitchRad);
+        float velY = v0 * Mathf.Sin(pitchRad);
+
+        // [精确修正] 初始位置偏移
+        // 源码: startPos = aimPos - forward * 0.5f
+        // 也就是在瞄准方向的反方向偏移 0.5m
+        // 分解这个偏移量：
+        float startOffsetX = -0.5f * Mathf.Cos(pitchRad); // 水平回退
+        float startOffsetY = -0.5f * Mathf.Sin(pitchRad); // 垂直回退
+
+        // 初始状态
+        float currentDistXZ = startOffsetX;
+        float currentY = startOffsetY;
+
+        int maxSteps = 200;
+
+        for (int i = 0; i < maxSteps; i++)
+        {
+            velY -= gravityAbs * dt;
+
+            float dragFactor = Mathf.Clamp01(1f - drag * dt);
+            velXZ *= dragFactor;
+            velY *= dragFactor;
+
+            currentDistXZ += velXZ * dt;
+            currentY += velY * dt;
+
+            if (currentDistXZ >= targetDistXZ)
+            {
+                return currentY;
+            }
+        }
+
+        return -9999f;
+    }
 
     public static void DamagePackage(float damage, bool killingBlow, ushort toPlayerID, DamageType dmgType = DamageType.Other,
         bool playParticles = false, Vector3 particlePosition = default, Vector3 particleDirection = default)
@@ -128,11 +287,54 @@ public class CheatHelper
 
     }
 
-    // Modify the position packages being sent to include custom projectiles from the cheat
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(MultiplayerManager), "OnPlayerMoved")]
-    private static bool OnPlayerMovedPrefix(MultiplayerManager __instance, ref byte[] data, int channel, ushort indexIgnore)
+    // Check and block kick packets and auto blacklist
+    public static void CheckPacket(CSteamID kickPacketSender, bool isKickPacket)
     {
+        var senderPlayerColor = Helper.GetColorFromID(Helper.ClientData
+            .First(data => data.ClientID == kickPacketSender)
+            .PlayerObject.GetComponent<NetworkPlayer>()
+            .NetworkSpawnID);
+        var senderPlayerID = kickPacketSender.ToString();
+        var senderPlayerName = Helper.GetPlayerName(kickPacketSender);
+
+        if (Blacklist.IsPlayerBlacklisted(senderPlayerID)) // In case non-host lobby
+        {
+            Helper.TrustedKicker = false;
+            Helper.LastPacketSender = kickPacketSender;
+            Helper.SendModOutput($"Blocked kick sent by: {senderPlayerColor} (Blacklisted)", Command.LogType.Warning, false);
+            Debug.LogWarning($"Blocked kick sent by: {senderPlayerName}, SteamID: {senderPlayerID} (Blacklisted)");
+            return;
+        }
+
+        // SteamID's are Monky and Rexi and z7572
+        if (isKickPacket && kickPacketSender.m_SteamID is not
+            (76561198202108442 or 76561198870040513 or 76561198840554147))
+        {
+            Helper.TrustedKicker = false;
+            Helper.LastPacketSender = kickPacketSender;
+            Helper.SendModOutput($"Blocked kick sent by: {senderPlayerColor}, blacklisted!", Command.LogType.Warning, false);
+            Debug.LogWarning($"Blocked kick sent by: {senderPlayerName}, SteamID: {senderPlayerID}");
+
+            // Auto blacklist
+            if (!Blacklist.IsPlayerBlacklisted(senderPlayerID))
+            {
+                Blacklist.AddToBlacklist(senderPlayerID, senderPlayerName);
+                Debug.LogWarning($"Added {senderPlayerID}({senderPlayerName}) to blacklist!");
+            }
+            else
+            {
+                Debug.LogWarning($"{senderPlayerID}({senderPlayerName}) is already blacklisted!");
+            }
+            return;
+        }
+
+        Helper.TrustedKicker = true;
+    }
+
+    // Modify the position packages being sent to include custom projectiles from the cheat
+    public static bool ProcessCustomProjectiles(ref byte[] data, int channel, ushort indexIgnore)
+    {
+
         if (data.Length != 18) return true; // Skip if the position package includes projectiles
 
         if (cachedProjectilePackages.Count == 0)

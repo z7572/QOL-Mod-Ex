@@ -135,6 +135,14 @@ public static class ChatManagerPatches
         Debug.Log("Added ChatField GameObject to the canvas");
     }
 
+    [HarmonyPatch(typeof(LevelCreator), "Start")]
+    [HarmonyPostfix]
+    private static void LevelCreatorStartPostfix()
+    {
+        if (!ConfigHandler.GetEntry<bool>("EnableChatFieldInLevelEditor")) return;
+        Plugin.InitModText();
+    }
+
     // Enable chat bubble in all lobbies
     public static bool AwakeMethodPrefix(ChatManager __instance)
     {

@@ -196,7 +196,7 @@ class WeaponPatches
                             break;
 
                         case "battery":
-                            var controller = Helper.controller; // In MapEditor
+                            var controller = Helper.controller; // In LevelEditor
                             if (Helper.controllerHandler != null)
                             {
                                 controller = Helper.controllerHandler.ActivePlayers[playerID]; // In Lobby

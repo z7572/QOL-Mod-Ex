@@ -1,22 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using HarmonyLib;
-using UnityEngine;
+﻿using HarmonyLib;
 
 namespace QOL.Patches;
 
-class BlockHandlerPatch
+[HarmonyPatch(typeof(BlockHandler))]
+public static class BlockHandlerPatch
 {
-    public static void Patch(Harmony harmonyInstance)
-    {
-        var updateMethod = AccessTools.Method(typeof(BlockHandler), "Update");
-        var updateMethodPostfix = new HarmonyMethod(typeof(BlockHandlerPatch)
-            .GetMethod(nameof(UpdateMethodPostfix)));
-        harmonyInstance.Patch(updateMethod, postfix: updateMethodPostfix);
-    }
-
+    [HarmonyPatch("Update")]
+    [HarmonyPostfix]
     public static void UpdateMethodPostfix(BlockHandler __instance, ref BlockAnimation ___anim)
     {
         if (ChatCommands.CmdDict["blockall"].IsEnabled)

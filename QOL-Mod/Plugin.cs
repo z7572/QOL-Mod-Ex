@@ -47,11 +47,9 @@ public class Plugin : BaseUnityPlugin
             Logger.LogInfo("Applying MusicHandlerPatch...");
             MusicHandlerPatch.Patch(harmony);
             Logger.LogInfo("Applying MovementPatch...");
-            Patches.MovementPatch.Patch(harmony);
+            MovementPatch.Patch(harmony);
             Logger.LogInfo("Applying MapSelectionHandlerPatch...");
             MapSelectionHandlerPatches.Patch(harmony);
-            Logger.LogInfo("Applying BlockHandlerPatch...");
-            BlockHandlerPatch.Patch(harmony);
             Logger.LogInfo("Applying other patches...");
             harmony.PatchAll();
         }
@@ -126,7 +124,13 @@ public class Plugin : BaseUnityPlugin
         canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasScaler.referenceResolution = new Vector2(1920, 1080);
 
-        modTextTMP.text = $"<color=red>Monky's QOL Mod</color> <color=#0bf>Ex</color> <color=white>v{VersionNumber}</color> <color=#0bf>z7572";
+        modTextTMP.text = $"<color=red>Monky's QOL Mod</color> " +
+#if DEBUG
+            $"<color=#0bf>" +
+#else
+            $"<color=#0f0>" +
+#endif
+            $"Ex</color> <color=white>v{VersionNumber}</color> <color=#0bf>z7572";
 
         //modTextTMP.font = Resources.Load<TMP_FontAsset>("fonts & materials/roboto-bold sdf");
         modTextTMP.fontSizeMax = 25;
@@ -138,7 +142,7 @@ public class Plugin : BaseUnityPlugin
         modTextTMP.richText = true;
     }
 
-    public const string VersionNumber = "1.22.1"; // Version number
+    public const string VersionNumber = "1.22.2"; // Version number
     public const string Guid = "monky.plugins.QOL";
     public static string NewUpdateVerCode = "";
 

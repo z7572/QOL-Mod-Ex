@@ -7,7 +7,6 @@ using TMPro;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-
 namespace QOL.Patches;
 
 [HarmonyPatch(typeof(MultiplayerManager))]
@@ -46,6 +45,14 @@ class MultiplayerManagerPatches
         GameManagerPatches.LobbiesJoined += 1;
     }
 
+    // Modify the position packages being sent to include custom projectiles from the cheat
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(MultiplayerManager), "OnPlayerMoved")]
+    private static bool OnPlayerMovedPrefix(MultiplayerManager __instance, ref byte[] data, int channel, ushort indexIgnore)
+    {
+        return CheatHelper.ProcessCustomProjectiles(ref data, channel, indexIgnore);
+    }
+
     // Refuse player in the blacklist to join
     // Credit to https://server.monblog.top/alist/%E6%8F%92%E4%BB%B6/%E9%BB%91%E5%90%8D%E5%8D%95/stick.plugins.blacklist-1.0.0.dll
     [HarmonyPatch("AddClientToList")]
@@ -80,7 +87,7 @@ class MultiplayerManagerPatches
         // Guards against Invalid_Map
         if (data[1] == 0 && data[2] == 103) // LevelEditor
         {
-            P2PPackageHandlerPatch.CheckPacket(Helper.LastPacketSender, true);
+            CheatHelper.CheckPacket(Helper.LastPacketSender, true);
             return false;
         }
 
@@ -114,7 +121,7 @@ class MultiplayerManagerPatches
         if (mapData.Length > 802 /* 100 * 8 + 2 */ ) // 100 maps
         {
             Debug.LogWarning($"Invalid map count(>100), blocking...");
-            P2PPackageHandlerPatch.CheckPacket(Helper.LastPacketSender, true);
+            CheatHelper.CheckPacket(Helper.LastPacketSender, true);
             return false;
         }
 

@@ -1,19 +1,15 @@
-﻿using HarmonyLib;
+﻿#if DEBUG
+using HarmonyLib;
 using Steamworks;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 
 namespace QOL;
 
-[HarmonyPatch]
 class PackageLogger
 {
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(P2PPackageHandler), "SendP2PPacketToUser", [typeof(CSteamID), typeof(byte[]), typeof(P2PPackageHandler.MsgType), typeof(EP2PSend), typeof(int)])]
-    private static void SendP2PPacketToUserPostfix(CSteamID clientID, byte[] data, P2PPackageHandler.MsgType messageType, EP2PSend sendMethod, int channel)
+    public static void ProcessPacketLog(CSteamID clientID, byte[] data, P2PPackageHandler.MsgType messageType, int channel)
     {
         var cmd = ChatCommands.CmdDict["logpkg"];
         if (!cmd.IsEnabled) return;
@@ -99,3 +95,4 @@ class PackageLogger
                   $"channel: {channel}");
     }
 }
+#endif

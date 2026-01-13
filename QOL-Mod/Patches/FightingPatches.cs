@@ -69,7 +69,6 @@ class FightingPatches
         {
             ___bulletsLeft++;
         }
-
     }
 
     public static void GrabWeaponMethodPrefix(Fighting __instance)
