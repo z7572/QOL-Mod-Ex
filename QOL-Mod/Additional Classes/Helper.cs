@@ -42,7 +42,12 @@ public static class Helper
     public static string GetColorFromID(ushort x) => x switch { 1 => "Blue", 2 => "Red", 3 => "Green", 65535 => "All", _ => "Yellow" };
 
     // Returns the targeted player based on the specified spawnID
-    public static NetworkPlayer GetNetworkPlayer(ushort targetID) => ClientData[targetID].PlayerObject.GetComponent<NetworkPlayer>();
+    public static NetworkPlayer GetNetworkPlayer(ushort targetID)
+    {
+        if (MatchmakingHandler.IsNetworkMatch)
+            return ClientData[targetID].PlayerObject.GetComponent<NetworkPlayer>();
+        return null;
+    }
 
     public static string GetPlayerHp(ushort targetID) =>
         GetNetworkPlayer(targetID)

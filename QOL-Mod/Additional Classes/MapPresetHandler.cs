@@ -49,8 +49,6 @@ public static class MapPresetHandler
         }
 
         MapPresetNames = _mapPresets.Select(preset => preset.PresetName).ToList(); // Add all names from the preset list
-        MapPresetNames.Add("save");
-        MapPresetNames.Add("remove");
         MapPresetNames.Sort();
 
         Debug.Log("Loaded " + _mapPresets.Count + " map presets!");

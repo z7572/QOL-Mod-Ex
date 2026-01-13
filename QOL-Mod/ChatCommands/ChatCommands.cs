@@ -47,7 +47,11 @@ public static class ChatCommands
         new Command("lobregen", LobRegenCmd, 0, false).SetAlwaysPublic(),
         new Command("lowercase", LowercaseCmd, 0, true).MarkAsToggle(),
         new Command("nuky", NukyCmd, 0, true).MarkAsToggle(),
-        new Command("maps", MapsCmd, 1, true, MapPresetHandler.MapPresetNames),
+        new Command("maps", MapsCmd, 2, true, (List<List<string>>)
+        [
+            ["save", "load", "remove"],
+            MapPresetHandler.MapPresetNames
+        ]),
         new Command("mute", MuteCmd, 1, true, PlayerUtils.PlayerColorsParams),
         new Command("music", MusicCmd, 1, true, new List<string>(4) { "loop", "play", "skip", "randomize" }).MarkAsToggle(),
         new Command("ouchmsg", OuchCmd, 0, true).MarkAsToggle(),
@@ -78,7 +82,11 @@ public static class ChatCommands
         new Command("uncensor", UncensorCmd, 0, true).MarkAsToggle(),
         new Command("uwu", UwuCmd, 0, true).MarkAsToggle(),
         new Command("ver", VerCmd, 0, true),
-        new Command("weapons", WeaponsCmd, 1, true, GunPresetHandler.GunPresetNames),
+        new Command("weapons", WeaponsCmd, 2, true, (List<List<string>>)
+        [
+            ["save", "load", "remove"],
+            GunPresetHandler.GunPresetNames
+        ]),
         new Command("wings", WingsCmd, 1, true, (List<List<string>>)
         [
             [ "blue", "red", "yellow", "rainbow", "none" ],
@@ -188,22 +196,29 @@ public static class ChatCommands
 
         CmdNames.Sort();
 
-        // Reflection hackery so that auto-params for the alias, log, maps, weapons cmds work
-        const string autoParamsBackingField = $"<{nameof(Command.AutoParams)}>k__BackingField";
-        Traverse.Create(CmdDict["alias"]).Field(autoParamsBackingField).SetValue(CmdNames.Select(cmd => cmd.Substring(1)).ToList());
-        Traverse.Create(CmdDict["output"]).Field(autoParamsBackingField).SetValue((List<List<string>>)
+        // Make auto-params for the alias, output, maps, weapons, etc. cmds work
+        CmdDict["alias"].AutoParams = CmdNames.Select(cmd => cmd.Substring(1)).ToList();
+        CmdDict["output"].AutoParams = (List<List<string>>)
         [
             [ "public", "private" ],
             CmdNames.Select(cmd => cmd.Substring(1)).ToList()
-        ]);
-        Traverse.Create(CmdDict["execute"]).Field(autoParamsBackingField).SetValue((List<List<string>>)
+        ];
+        CmdDict["execute"].AutoParams = (List<List<string>>)
         [
             PlayerUtils.PlayerColorsParams,
             CmdNames.Select(cmd => cmd.Substring(1)).ToList()
             // TODO: Dynamic list of chain command's parameters
-        ]);
-        Traverse.Create(CmdDict["maps"]).Field(autoParamsBackingField).SetValue(MapPresetHandler.MapPresetNames);
-        Traverse.Create(CmdDict["weapons"]).Field(autoParamsBackingField).SetValue(GunPresetHandler.GunPresetNames);
+        ];
+        CmdDict["maps"].AutoParams = (List<List<string>>)
+        [
+            [ "save", "load", "remove" ],
+            MapPresetHandler.MapPresetNames
+        ];
+        CmdDict["weapons"].AutoParams = (List<List<string>>)
+        [
+            [ "save", "load", "remove" ],
+            GunPresetHandler.GunPresetNames
+        ];
 
         // On-startup options need to map their values to respective cmds
         CmdDict["gg"].IsEnabled = ConfigHandler.GetEntry<bool>("ggstartup");
@@ -639,17 +654,15 @@ public static class ChatCommands
 
     private static void WeaponsCmd(string[] args, Command cmd)
     {
-        var arg = args[0];
-        switch (arg)
+        var action = args[0].ToLower();
+        var presetName = args[1];
+
+        switch (action)
         {
-            case "remove" or "save" when args.Length < 2:
-                cmd.SetLogType(Command.LogType.Warning);
-                cmd.SetOutputMsg("No preset name given, please specify one.");
-                return;
             case "save":
                 {
-                    var presetName = args[1].ToLower();
-                    if (GunPresetHandler.GunPresetNames.Contains(presetName))
+                    var nameToSave = presetName.ToLower();
+                    if (GunPresetHandler.GunPresetNames.Contains(nameToSave))
                     {
                         cmd.SetLogType(Command.LogType.Warning);
                         cmd.SetOutputMsg("Preset with specified name already exists.");
@@ -657,15 +670,14 @@ public static class ChatCommands
                     }
 
                     var activeWeapons = GunPresetHandler.GetAllActiveWeapons();
-                    var presetToSave = new SaveableGunPreset(activeWeapons, presetName);
+                    var presetToSave = new SaveableGunPreset(activeWeapons, nameToSave);
                     GunPresetHandler.AddNewPreset(presetToSave);
 
-                    cmd.SetOutputMsg("Saved preset: \"" + presetName + "\".");
+                    cmd.SetOutputMsg("Saved preset: \"" + nameToSave + "\".");
                     return;
                 }
             case "remove":
                 {
-                    var presetName = args[1];
                     var presetWantedIndex = GunPresetHandler.FindIndexOfPreset(presetName);
 
                     if (presetWantedIndex == -1)
@@ -679,20 +691,26 @@ public static class ChatCommands
                     cmd.SetOutputMsg("Removed preset: \"" + presetName + "\".");
                     return;
                 }
-        }
+            case "load":
+                {
+                    var presetWanted = GunPresetHandler.FindPreset(presetName);
+                    if (presetWanted is null)
+                    {
+                        cmd.SetLogType(Command.LogType.Warning);
+                        cmd.SetOutputMsg("Specified preset not found.");
+                        return;
+                    }
 
-        // Must want to load preset instead
-        var presetWanted = GunPresetHandler.FindPreset(arg);
-        if (presetWanted is null)
-        {
-            cmd.SetLogType(Command.LogType.Warning);
-            cmd.SetOutputMsg("Specified preset not found.");
-            return;
+                    Debug.Log("Trying to load a weapon preset: " + presetWanted.PresetName);
+                    GunPresetHandler.LoadPreset(presetWanted);
+                    cmd.SetOutputMsg("Enabled preset: \"" + presetName + "\".");
+                    return;
+                }
+            default:
+                cmd.SetLogType(Command.LogType.Warning);
+                cmd.SetOutputMsg("Invalid action! Use load, save, or remove.");
+                break;
         }
-
-        Debug.Log("Trying to load a weapon preset: " + presetWanted.PresetName);
-        GunPresetHandler.LoadPreset(presetWanted);
-        cmd.SetOutputMsg("Enabled preset: \"" + arg + "\".");
     }
 
     // Opens up the steam overlay to the GitHub readme, specifically the Chat Commands section
@@ -917,17 +935,15 @@ public static class ChatCommands
     // Saves/Removes/Loads map presets
     private static void MapsCmd(string[] args, Command cmd)
     {
-        var arg = args[0];
-        switch (arg)
+        var action = args[0].ToLower();
+        var presetName = args[1];
+
+        switch (action)
         {
-            case "remove" or "save" when args.Length < 2:
-                cmd.SetLogType(Command.LogType.Warning);
-                cmd.SetOutputMsg("No preset name given, please specify one.");
-                return;
             case "save":
                 {
-                    var presetName = args[1].ToLower();
-                    if (MapPresetHandler.MapPresetNames.Contains(presetName))
+                    var nameToSave = presetName.ToLower();
+                    if (MapPresetHandler.MapPresetNames.Contains(nameToSave))
                     {
                         cmd.SetLogType(Command.LogType.Warning);
                         cmd.SetOutputMsg("Preset with specified name already exists.");
@@ -935,15 +951,14 @@ public static class ChatCommands
                     }
 
                     var activeMaps = MapPresetHandler.GetAllStockMapIndexes(true);
-                    var presetToSave = new SaveableMapPreset(activeMaps, presetName);
+                    var presetToSave = new SaveableMapPreset(activeMaps, nameToSave);
                     MapPresetHandler.AddNewPreset(presetToSave);
 
-                    cmd.SetOutputMsg("Saved preset: \"" + presetName + "\".");
+                    cmd.SetOutputMsg("Saved preset: \"" + nameToSave + "\".");
                     return;
                 }
             case "remove":
                 {
-                    var presetName = args[1];
                     var presetWantedIndex = MapPresetHandler.FindIndexOfPreset(presetName);
 
                     if (presetWantedIndex == -1)
@@ -957,20 +972,26 @@ public static class ChatCommands
                     cmd.SetOutputMsg("Removed preset: \"" + presetName + "\".");
                     return;
                 }
-        }
+            case "load":
+                {
+                    var presetWanted = MapPresetHandler.FindPreset(presetName);
+                    if (presetWanted is null)
+                    {
+                        cmd.SetLogType(Command.LogType.Warning);
+                        cmd.SetOutputMsg("Specified preset not found.");
+                        return;
+                    }
 
-        // Must want to load preset instead
-        var presetWanted = MapPresetHandler.FindPreset(arg);
-        if (presetWanted is null)
-        {
-            cmd.SetLogType(Command.LogType.Warning);
-            cmd.SetOutputMsg("Specified preset not found.");
-            return;
+                    Debug.Log("Trying to load a preset: " + presetWanted.PresetName);
+                    MapPresetHandler.LoadPreset(presetWanted);
+                    cmd.SetOutputMsg("Enabled preset: \"" + presetName + "\".");
+                    return;
+                }
+            default:
+                cmd.SetLogType(Command.LogType.Warning);
+                cmd.SetOutputMsg("Invalid action! Use load, save, or remove.");
+                break;
         }
-
-        Debug.Log("Trying to load a preset: " + presetWanted.PresetName);
-        MapPresetHandler.LoadPreset(presetWanted);
-        cmd.SetOutputMsg("Enabled preset: \"" + arg + "\".");
     }
 
     // Mutes the specified player (Only for the current lobby and only client-side)
@@ -1218,7 +1239,14 @@ public static class ChatCommands
     // Kills user
     private static void SuicideCmd(string[] args, Command cmd)
     {
-        Helper.networkPlayer.UnitWasDamaged(5, true, DamageType.LocalDamage, true);
+        if (MatchmakingHandler.IsNetworkMatch)
+        {
+            Helper.networkPlayer.UnitWasDamaged(5, true, DamageType.LocalDamage, true);
+        }
+        else
+        {
+            Helper.controller.GetComponent<HealthHandler>().TakeDamage(10000, Helper.controller);
+        }
 
         var phrases = ConfigHandler.DeathPhrases;
         var randMsg = phrases[Random.Range(0, phrases.Length)];
@@ -1861,7 +1889,14 @@ public static class ChatCommands
             cmd.SetLogType(Command.LogType.Warning);
             return;
         }
-        Helper.GetNetworkPlayer(targetID).UnitWasDamaged(0, true);
+        if (MatchmakingHandler.IsNetworkMatch)
+        {
+            Helper.GetNetworkPlayer(targetID).UnitWasDamaged(0, true);
+        }
+        else
+        {
+            Helper.GetControllerFromID(targetID).GetComponent<HealthHandler>().TakeDamage(10000, Helper.controller);
+        }
         cmd.SetOutputMsg("Killed player " + Helper.GetColorFromID(targetID));
     }
 

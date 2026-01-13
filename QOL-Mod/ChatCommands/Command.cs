@@ -25,7 +25,7 @@ public class Command
     public string Name { get; }
     public string Option { get; private set; }
     public List<string> Aliases { get; } = new();
-    public object AutoParams { get; private set; }
+    public object AutoParams { get; internal set; }
     public bool IsToggle { get; private set; }
     public bool IsCheat { get; private set; }
     public bool IsEnabled { get; set; }

@@ -30,8 +30,6 @@ public static class GunPresetHandler
         }
 
         GunPresetNames = _weaponPresets.Select(preset => preset.PresetName).ToList(); // Add all names from the preset list
-        GunPresetNames.Add("save");
-        GunPresetNames.Add("remove");
         GunPresetNames.Sort();
 
         Debug.Log("Loaded " + _weaponPresets.Count + " gun presets!");

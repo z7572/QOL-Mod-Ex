@@ -10,7 +10,25 @@ public static class PlayerUtils
 
     public static bool IsPlayerInLobby(int targetID)
     {
-        var connectedClients = GameManager.Instance.mMultiplayerManager.ConnectedClients;
-        return connectedClients[targetID] != null && connectedClients[targetID].PlayerObject;
+        if (MatchmakingHandler.IsNetworkMatch)
+        {
+            var connectedClients = GameManager.Instance.mMultiplayerManager.ConnectedClients;
+            return connectedClients[targetID] != null && connectedClients[targetID].PlayerObject;
+        }
+
+        else if (ControllerHandler.Instance != null)
+        {
+            var players = ControllerHandler.Instance.players;
+            for (int i = 0; i < players.Count; i++)
+            {
+                var controller = players[i];
+                if (controller != null && controller.playerID == targetID)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
