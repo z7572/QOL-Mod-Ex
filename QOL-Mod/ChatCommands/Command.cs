@@ -7,6 +7,7 @@ namespace QOL;
 
 public class Command
 {
+
     public bool IsPublic
     {
         get => _isPublic;
@@ -73,6 +74,10 @@ public class Command
         {
             AutoParams = hybridAutoParams;
         }
+        else if (autoParameters is List<object> mixedAutoParams)
+        {
+            AutoParams = mixedAutoParams;
+        }
         else
         {
             AutoParams = null;
@@ -87,7 +92,8 @@ public class Command
 
         if (AutoParams is DynamicAutoParams dynamicParams)
         {
-            return dynamicParams.GetCandidates(args, this);
+            // Usually DynamicAutoParams won't be the root, but if it is, handle it via recursive method
+            return GetCandidatesRecursive(dynamicParams, args, 0);
         }
 
         return GetCandidatesRecursive(AutoParams, args, 0);
@@ -95,6 +101,29 @@ public class Command
 
     private List<string> GetCandidatesRecursive(object currentLevel, string[] args, int depth)
     {
+        if (currentLevel is DynamicAutoParams dynamicParams)
+        {
+            if (depth > 0 && depth <= args.Length)
+            {
+                var prevParam = args[depth - 1];
+
+                switch (dynamicParams.Type)
+                {
+                    case DynamicAutoParams.ParamType.ChainCommand:
+                        if (ChatCommands.CmdDict.TryGetValue(prevParam.ToLower(), out var targetCmd))
+                        {
+                            var remainingArgs = args.Skip(depth).ToArray();
+                            return targetCmd.GetAutoParamCandidates(remainingArgs);
+                        }
+                        break;
+
+                    case DynamicAutoParams.ParamType.ConfigKey:
+                        return ConfigHandler.GetConfigCandidates(prevParam);
+                }
+            }
+            return [];
+        }
+
         if (depth >= args.Length)
         {
             return currentLevel switch
@@ -106,6 +135,12 @@ public class Command
                 List<List<string>> listOfLists when _isLastParamInfinite => listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] ?? [] : [],
                 HybridAutoParams hybrid when depth < hybrid.IndexedParams.Count => hybrid.IndexedParams[depth] ?? [],
                 HybridAutoParams hybrid when hybrid.TreeParams != null => hybrid.TreeParams.Keys.ToList(),
+
+                List<object> mixedList when depth < mixedList.Count =>
+                    mixedList[depth] is DynamicAutoParams
+                        ? GetCandidatesRecursive(mixedList[depth], args, depth)
+                        : GetCandidatesForMixedLevel(mixedList[depth]),
+
                 _ => []
             };
         }
@@ -120,9 +155,10 @@ public class Command
         switch (currentLevel)
         {
             case Dictionary<string, object> dict:
-                if (dict.ContainsKey(currentArg))
+                var dictKey = dict.Keys.FirstOrDefault(k => k.Equals(currentArg, StringComparison.InvariantCultureIgnoreCase));
+                if (dictKey != null)
                 {
-                    var nextLevel = dict[currentArg];
+                    var nextLevel = dict[dictKey];
                     return GetCandidatesRecursive(nextLevel, args, depth + 1);
                 }
                 else
@@ -134,78 +170,94 @@ public class Command
                 if (depth < listOfLists.Count)
                 {
                     var currentList = listOfLists[depth];
-                    if (currentList == null)
-                    {
-                        return GetCandidatesRecursive(listOfLists, args, depth + 1);
-                    }
+                    if (currentList == null) return GetCandidatesRecursive(listOfLists, args, depth + 1);
 
-                    if (currentList.Contains(currentArg))
-                    {
+                    if (currentList.Any(s => s.Equals(currentArg, StringComparison.InvariantCultureIgnoreCase)))
                         return GetCandidatesRecursive(listOfLists, args, depth + 1);
-                    }
                     else
-                    {
                         return currentList;
-                    }
                 }
                 else if (_isLastParamInfinite)
                 {
                     return listOfLists.Count > 0 ? listOfLists[listOfLists.Count - 1] ?? [] : [];
                 }
-                else
-                {
-                    return [];
-                }
+                return [];
 
             case List<string> list:
-                if (list.Contains(currentArg))
+                if (list.Any(s => s.Equals(currentArg, StringComparison.InvariantCultureIgnoreCase))) return [];
+                else return list;
+
+            case List<object> mixedList:
+                if (depth < mixedList.Count)
                 {
-                    return [];
+                    var item = mixedList[depth];
+
+                    if (item is List<string> strList)
+                    {
+                        if (strList.Contains(currentArg)) return GetCandidatesRecursive(mixedList, args, depth + 1);
+                        else return strList;
+                    }
+                    else if (item is DynamicAutoParams)
+                    {
+                        return GetCandidatesRecursive(item, args, depth);
+                    }
+                    else if (item is Dictionary<string, object> dictItem)
+                    {
+                        if (dictItem.ContainsKey(currentArg))
+                        {
+                            var nextLevel = dictItem[currentArg];
+                            return GetCandidatesRecursive(nextLevel, args, depth + 1);
+                        }
+                        return dictItem.Keys.ToList();
+                    }
+                    else if (item is HybridAutoParams hybridItem) // NOT TESTED YET
+                    {
+                        return GetCandidatesRecursive(hybridItem, args, depth);
+                    }
+                    else if (item == null)
+                    {
+                        return GetCandidatesRecursive(mixedList, args, depth + 1);
+                    }
                 }
-                else
-                {
-                    return list;
-                }
+                return [];
 
             case HybridAutoParams hybrid:
                 if (depth < hybrid.IndexedParams.Count)
                 {
                     var currentList = hybrid.IndexedParams[depth];
-                    if (currentList == null)
-                    {
+                    if (currentList == null) return GetCandidatesRecursive(hybrid, args, depth + 1);
+                    if (currentList.Any(s => s.Equals(currentArg, StringComparison.InvariantCultureIgnoreCase)))
                         return GetCandidatesRecursive(hybrid, args, depth + 1);
-                    }
-                    if (currentList.Contains(currentArg))
-                    {
-                        return GetCandidatesRecursive(hybrid, args, depth + 1);
-                    }
                     else
-                    {
                         return currentList;
-                    }
                 }
                 else if (hybrid.TreeParams != null)
                 {
-                    if (hybrid.TreeParams.ContainsKey(currentArg))
+                    var key = hybrid.TreeParams.Keys.FirstOrDefault(k => k.Equals(currentArg, StringComparison.InvariantCultureIgnoreCase));
+                    if (key != null)
                     {
-                        var nextLevel = hybrid.TreeParams[currentArg];
+                        var nextLevel = hybrid.TreeParams[key];
                         return GetCandidatesRecursive(nextLevel, args, depth + 1);
                     }
-                    else
-                    {
-                        return hybrid.TreeParams.Keys.ToList();
-                    }
+                    else return hybrid.TreeParams.Keys.ToList();
                 }
-                else
-                {
-                    return [];
-                }
+                return [];
 
             default:
                 return [];
         }
     }
 
+    private List<string> GetCandidatesForMixedLevel(object levelItem)
+    {
+        return levelItem switch
+        {
+            List<string> list => list,
+            Dictionary<string, object> dict => dict.Keys.ToList(),
+            DynamicAutoParams => [], // Normal to return empty here, as it should be intercepted and processed by the upper switch
+            _ => []
+        };
+    }
     // Private as there has been no cases where this type of visibility was necessary and the cmd was not a toggle
     private void SetAlwaysPrivate()
     {
@@ -303,10 +355,10 @@ public class Command
         }
         catch (Exception e)
         {
-            Debug.LogError("Exception occured when running command: " + e);
+            Debug.LogError("Exception occured when running command: " + e.GetType().Name + " : " + e.Message);
 
             // _currentOutputMsg = "Something went wrong! DM Monky#4600 if bug.";
-            _currentOutputMsg = e.Message;
+            _currentOutputMsg = e.GetType().Name + " : " + e.Message;
             Helper.SendModOutput(_currentOutputMsg, LogType.Warning, false);
             _currentOutputMsg = "";
             throw;

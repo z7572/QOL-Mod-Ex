@@ -277,7 +277,7 @@ public static class ChatManagerPatches
                     _keyHoldTime += Time.deltaTime;
                     if (Input.GetKeyDown(KeyCode.Tab) || _keyHoldTime > 0.5f)
                     {
-                        HandleCommandNavigation(true);
+                        HandleCommandNavigation(chatField, true);
                     }
                 }
                 else if (Input.GetKeyUp(KeyCode.Tab))
@@ -286,7 +286,7 @@ public static class ChatManagerPatches
                 }
                 if (Input.GetAxis("Mouse ScrollWheel") < 0)
                 {
-                    HandleCommandNavigation(true);
+                    HandleCommandNavigation(chatField, true);
                 }
 
                 if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.Tab))
@@ -294,7 +294,7 @@ public static class ChatManagerPatches
                     _keyHoldTime += Time.deltaTime;
                     if (Input.GetKeyDown(KeyCode.Tab) || _keyHoldTime > 0.5f)
                     {
-                        HandleCommandNavigation(false);
+                        HandleCommandNavigation(chatField, false);
                     }
                 }
                 else if (Input.GetKeyUp(KeyCode.Tab))
@@ -303,103 +303,120 @@ public static class ChatManagerPatches
                 }
                 if (Input.GetAxis("Mouse ScrollWheel") > 0)
                 {
-                    HandleCommandNavigation(false);
+                    HandleCommandNavigation(chatField, false);
                 }
             }
         }
+    }
 
-        void HandleCommandNavigation(bool forward)
+    private static void HandleCommandNavigation(TMP_InputField chatField, bool forward)
+    {
+        var txt = chatField.text;
+        if (!txt.StartsWith(Command.CmdPrefix)) return;
+
+        var allCmds = ChatCommands.CmdNames;
+        var matchedCmd = allCmds.FirstOrDefault(cmd => txt.ToLower() == cmd);
+
+        if (matchedCmd != null)
         {
-            var txt = chatField.text;
-            if (!txt.StartsWith(Command.CmdPrefix)) return;
+            var currentParamIndex = allCmds.FindIndex(cmd => cmd.StartsWith(matchedCmd));
+            string newCmd = forward
+                ? (currentParamIndex >= 0 && currentParamIndex < allCmds.Count - 1 ? allCmds[currentParamIndex + 1] : allCmds.First())
+                : (currentParamIndex > 0 ? allCmds[currentParamIndex - 1] : allCmds.Last());
 
-            var allCmds = ChatCommands.CmdNames;
-            var matchedCmd = allCmds.FirstOrDefault(cmd => txt.ToLower() == cmd);
-
-            if (matchedCmd != null)
+            chatField.DeactivateInputField();
+            chatField.text = newCmd;
+            chatField.stringPosition = chatField.text.Length;
+            chatField.ActivateInputField();
+        }
+        else
+        {
+            var plainText = txt;
+            const string rTxtFmt = "<#000000BB><u>";
+            var richTextPos = plainText.IndexOf(rTxtFmt);
+            if (richTextPos != -1)
             {
-                var currentParamIndex = allCmds.FindIndex(cmd => cmd.StartsWith(matchedCmd));
-                string newCmd = forward
-                    ? (currentParamIndex >= 0 && currentParamIndex < allCmds.Count - 1 ? allCmds[currentParamIndex + 1] : allCmds.First())
-                    : (currentParamIndex > 0 ? allCmds[currentParamIndex - 1] : allCmds.Last());
+                plainText = plainText.Remove(richTextPos);
+            }
 
-                chatField.DeactivateInputField();
-                chatField.text = newCmd;
-                chatField.stringPosition = chatField.text.Length;
-                chatField.ActivateInputField();
+            var cleanText = plainText.Replace(Command.CmdPrefix.ToString(), "");
+            var parts = cleanText.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (cleanText.EndsWith(" "))
+            {
+                var list = parts.ToList();
+                list.Add("");
+                parts = list.ToArray();
+            }
+            var args = parts;
+
+            if (args.Length <= 1) return;
+
+            var cmdName = args[0].ToLower();
+            Command cmd = null;
+            if (ChatCommands.CmdDict.ContainsKey(cmdName))
+                cmd = ChatCommands.CmdDict[cmdName];
+
+            if (cmd == null || cmd.AutoParams == null) return;
+
+            var currentParam = args.Last();
+            var previousArgs = args.Skip(1).Take(args.Length - 2).ToArray();
+
+            var candidates = cmd.GetAutoParamCandidates(previousArgs);
+
+            if (candidates == null || candidates.Count == 0) return;
+
+            // [新逻辑] 智能简写/全称分离切换
+            // 如果候选列表中混合了简写(长度1)和全称(长度>1)，则根据当前输入的长度进行隔离
+            if (candidates.Any(s => s.Length == 1) && candidates.Any(s => s.Length > 1))
+            {
+                bool isShorthand = currentParam.Length == 1;
+                // 如果当前是简写，只保留简写候选；如果是全称，只保留全称候选
+                var filtered = candidates.Where(s => (s.Length == 1) == isShorthand).ToList();
+
+                // 只有在过滤后仍有结果时才应用过滤（防止某些特殊情况列表为空）
+                if (filtered.Count > 0)
+                {
+                    candidates = filtered;
+                }
+            }
+
+            var matchedParam = candidates.FirstOrDefault(p => p.StartsWith(currentParam, StringComparison.InvariantCultureIgnoreCase));
+
+            if (matchedParam == null)
+            {
+                matchedParam = candidates.First();
+            }
+
+            var currentParamIndexInList = candidates.IndexOf(matchedParam);
+            string newParam;
+
+            if (forward)
+            {
+                newParam = currentParamIndexInList >= 0 && currentParamIndexInList < candidates.Count - 1
+                    ? candidates[currentParamIndexInList + 1]
+                    : candidates.First();
             }
             else
             {
-                var plainText = txt;
-                const string rTxtFmt = "<#000000BB><u>";
-                var richTextPos = plainText.IndexOf(rTxtFmt);
-                if (richTextPos != -1)
-                {
-                    plainText = plainText.Remove(richTextPos);
-                }
-
-                var cleanText = plainText.Replace(Command.CmdPrefix.ToString(), "");
-                var parts = cleanText.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                if (cleanText.EndsWith(" "))
-                {
-                    var list = parts.ToList();
-                    list.Add("");
-                    parts = list.ToArray();
-                }
-                var args = parts;
-
-                if (args.Length <= 1) return;
-
-                var cmdName = args[0].ToLower();
-                Command cmd = null;
-                if (ChatCommands.CmdDict.ContainsKey(cmdName))
-                    cmd = ChatCommands.CmdDict[cmdName];
-
-                if (cmd == null || cmd.AutoParams == null) return;
-
-                var currentParam = args.Last();
-                var previousArgs = args.Skip(1).Take(args.Length - 2).ToArray();
-
-                var candidates = cmd.GetAutoParamCandidates(previousArgs);
-
-                if (candidates == null || candidates.Count == 0) return;
-
-                var matchedParam = candidates.FirstOrDefault(p => p.StartsWith(currentParam, StringComparison.InvariantCultureIgnoreCase));
-
-                if (matchedParam == null)
-                {
-                    matchedParam = candidates.First();
-                }
-
-                var currentParamIndexInList = candidates.IndexOf(matchedParam);
-                string newParam;
-
-                if (forward)
-                {
-                    newParam = currentParamIndexInList >= 0 && currentParamIndexInList < candidates.Count - 1
-                        ? candidates[currentParamIndexInList + 1]
-                        : candidates.First();
-                }
-                else
-                {
-                    newParam = currentParamIndexInList > 0
-                        ? candidates[currentParamIndexInList - 1]
-                        : candidates.Last();
-                }
-
-                chatField.DeactivateInputField();
-
-                var lastSpaceIndex = plainText.LastIndexOf(' ');
-                if (lastSpaceIndex == -1) return;
-
-                var baseText = plainText.Substring(0, lastSpaceIndex + 1); // Include space
-                chatField.text = baseText + newParam;
-                chatField.stringPosition = chatField.text.Length;
-                chatField.ActivateInputField();
-                }
+                newParam = currentParamIndexInList > 0
+                    ? candidates[currentParamIndexInList - 1]
+                    : candidates.Last();
             }
+
+            chatField.DeactivateInputField();
+
+            var lastSpaceIndex = plainText.LastIndexOf(' ');
+            if (lastSpaceIndex == -1) return;
+
+            var baseText = plainText.Substring(0, lastSpaceIndex + 1);
+            chatField.text = baseText + newParam;
+
+            chatField.stringPosition = chatField.text.Length;
+            chatField.ActivateInputField();
         }
+    }
+    
 
     public static void StopTypingMethodPostfix()
     {
@@ -470,10 +487,41 @@ public static class ChatManagerPatches
     }
 
     // Method which increases duration of a chat message by set amount in config
-    public static void TalkMethodPostfix(ref float ___disableChatIn)
+    public static void TalkMethodPostfix(ChatManager __instance, ref float ___disableChatIn)
     {
         var extraTime = ConfigHandler.GetEntry<float>("MsgDuration");
         if (extraTime > 0) ___disableChatIn += extraTime;
+
+        var text = Traverse.Create(__instance).Field("text").GetValue<TMP_Text>();
+        if (__instance != Helper.LocalChat && text.richText)
+        {
+            CoroutineRunner.Run(DisableRichTextCoroutine(__instance, ___disableChatIn));
+        }
+    }
+
+    private static IEnumerator DisableRichTextCoroutine(ChatManager chat, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        if (chat != null)
+        {
+            try
+            {
+                var currentTimer = Traverse.Create(chat).Field("disableChatIn").GetValue<float>();
+
+                if (currentTimer <= 0.1f)
+                {
+                    var textComp = Traverse.Create(chat).Field("text").GetValue<TMP_Text>();
+                    if (textComp != null)
+                    {
+                        textComp.richText = false;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
     }
 
     public static void FindAndRunCommand(string message)
@@ -617,79 +665,85 @@ public static class ChatManagerPatches
 
                     // Auto-completing single or multiple parameters
 
-                    if (targetCmdParams is List<string> simpleAutoParams)
-                    {
-                        var paramsMatched = simpleAutoParams.FindAll(
-                        word => word.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
+                    //if (targetCmdParams is List<string> simpleAutoParams)
+                    //{
+                    //    var paramsMatched = simpleAutoParams.FindAll(
+                    //    word => word.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
 
-                        if (paramsMatched.Count > 0 && cmdAndParam.Length < 3)
-                        {
-                            var paramMatch = paramsMatched[0];
-                            var paramMatchLen = paramMatch.Length;
+                    //    if (paramsMatched.Count > 0 && cmdAndParam.Length < 3)
+                    //    {
+                    //        var paramMatch = paramsMatched[0];
+                    //        var paramMatchLen = paramMatch.Length;
 
-                            if (paramTxtLen == paramMatchLen)
-                            {
-                                var paramRichTxtStartPos = paramTxt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
-                                if (paramRichTxtStartPos != -1 && paramTxt.Substring(0, paramRichTxtStartPos) == paramMatch)
-                                {
-                                    chatField.text = chatField.text.Remove(txtLen - paramMatchLen - rTxtFmt.Length + 1, rTxtFmt.Length);
-                                    return;
-                                }
+                    //        if (paramTxtLen == paramMatchLen)
+                    //        {
+                    //            var paramRichTxtStartPos = paramTxt.IndexOf(rTxtFmt, StringComparison.InvariantCultureIgnoreCase);
+                    //            if (paramRichTxtStartPos != -1 && paramTxt.Substring(0, paramRichTxtStartPos) == paramMatch)
+                    //            {
+                    //                chatField.text = chatField.text.Remove(txtLen - paramMatchLen - rTxtFmt.Length + 1, rTxtFmt.Length);
+                    //                return;
+                    //            }
 
-                                if (Input.GetKeyDown(KeyCode.Tab))
-                                {   // Auto-completes the suggested parameter. Input field is made immutable so str pos is set correctly
-                                    if (!chatField.richText)
-                                    {
-                                        _canSwitchCmd = true;
-                                        return;
-                                    }
-                                    chatField.DeactivateInputField();
+                    //            if (Input.GetKeyDown(KeyCode.Tab))
+                    //            {   // Auto-completes the suggested parameter. Input field is made immutable so str pos is set correctly
+                    //                if (!chatField.richText)
+                    //                {
+                    //                    _canSwitchCmd = true;
+                    //                    return;
+                    //                }
+                    //                chatField.DeactivateInputField();
 
-                                    if (ReferenceEquals(simpleAutoParams, PlayerUtils.PlayerColorsParams))
-                                    {   // Change player color to 1 letter variant to encourage shorthand alternative
-                                        // Multiply by 2 to get correct shorthand index for color
-                                        var colorIndex = Helper.GetIDFromColor(paramMatch) * 2;
-                                        paramMatch = PlayerUtils.PlayerColorsParams[colorIndex];
-                                    }
+                    //                if (ReferenceEquals(simpleAutoParams, PlayerUtils.PlayerColorsParams))
+                    //                {   // Change player color to 1 letter variant to encourage shorthand alternative
+                    //                    // Multiply by 2 to get correct shorthand index for color
+                    //                    var colorIndex = Helper.GetIDFromColor(paramMatch) * 2;
+                    //                    paramMatch = PlayerUtils.PlayerColorsParams[colorIndex];
+                    //                }
 
-                                    // string.Remove() so we don't rely on the update loop to remove the rich txt leftovers
-                                    if (txtLen - paramMatchLen - rTxtFmt.Length > 0) // Actually fixs the bug: the second switch don't work
-                                    {
-                                        chatField.text = txt.Remove(txtLen - paramMatchLen - rTxtFmt.Length) + paramMatch;
-                                    }
-                                    chatField.stringPosition = chatField.text.Length;
-                                    chatField.ActivateInputField();
-                                    if (txt.EndsWith(rTxtFmt))
-                                    {
-                                        // Necessary to avoid cannot switch after inputting full param and pressing Tab
-                                        _canSwitchCmd = true;
-                                    }
-                                    else
-                                    {
-                                        _canSwitchCmd = txt == parsedTxt;
-                                    }
-                                }
-                                return;
-                            }
+                    //                // string.Remove() so we don't rely on the update loop to remove the rich txt leftovers
+                    //                if (txtLen - paramMatchLen - rTxtFmt.Length > 0) // Actually fixs the bug: the second switch don't work
+                    //                {
+                    //                    chatField.text = txt.Remove(txtLen - paramMatchLen - rTxtFmt.Length) + paramMatch;
+                    //                }
+                    //                chatField.stringPosition = chatField.text.Length;
+                    //                chatField.ActivateInputField();
+                    //                if (txt.EndsWith(rTxtFmt))
+                    //                {
+                    //                    // Necessary to avoid cannot switch after inputting full param and pressing Tab
+                    //                    _canSwitchCmd = true;
+                    //                }
+                    //                else
+                    //                {
+                    //                    _canSwitchCmd = txt == parsedTxt;
+                    //                }
+                    //            }
+                    //            return;
+                    //        }
 
-                            chatField.richText = true;
-                            _canSwitchCmd = false; // Disable switch when showing suggestions
-                            chatField.text += rTxtFmt + paramMatch.Substring(paramTxtLen);
-                        }
-                        else
-                        {
-                            RemoveRichTextAndTryRematch(chatField, txt, targetCmd);
-                        }
-                    }
+                    //        chatField.richText = true;
+                    //        _canSwitchCmd = false; // Disable switch when showing suggestions
+                    //        chatField.text += rTxtFmt + paramMatch.Substring(paramTxtLen);
+                    //    }
+                    //    else
+                    //    {
+                    //        RemoveRichTextAndTryRematch(chatField, txt, targetCmd);
+                    //    }
+                    //}
                     // Implement auto-completing multiple parameters
-                    else
+                    //else
                     {
                         var previousArgs = cmdAndParam.Skip(1).Take(cmdAndParam.Length - 2).ToArray();
                         var candidates = targetCmd.GetAutoParamCandidates(previousArgs);
 
                         if (candidates != null && candidates.Count > 0)
                         {
-                            var match = candidates.FirstOrDefault(p => p.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
+                            // [重要修改] 优先精确匹配，其次前缀匹配
+                            // 这样输入 "r" 时会匹配到 "r" 而不是 "red"
+                            var match = candidates.FirstOrDefault(p => string.Equals(p, paramTxt, StringComparison.InvariantCultureIgnoreCase));
+                            if (match == null)
+                            {
+                                match = candidates.FirstOrDefault(p => p.StartsWith(paramTxt, StringComparison.InvariantCultureIgnoreCase));
+                            }
 
                             if (match != null)
                             {
@@ -768,6 +822,43 @@ public static class ChatManagerPatches
             chatField.richText = false;
         }
     }
+
+    // [核心方法] 通用回溯查找逻辑 (Backtracking Logic)
+    // 解决 Config 中带空格参数（如 D88C47 5573AD）无法被正确识别为单个参数的问题
+    private static bool TryFindCandidatesWithBacktracking(Command cmd, string[] parts, out List<string> candidates, out string currentParamForMatch, out string firstWordOfParam)
+    {
+        candidates = null;
+        currentParamForMatch = "";
+        firstWordOfParam = "";
+
+        // 尝试从后往前合并参数：尝试将最后 1 个、2 个... n 个 token 组合成一个参数
+        for (int i = 0; i < parts.Length - 1; i++)
+        {
+            int mergeCount = 1 + i;
+            int prevArgCount = parts.Length - 1 - mergeCount;
+            if (prevArgCount < 0) break;
+
+            var testPrevArgs = parts.Skip(1).Take(prevArgCount).ToArray();
+            var testCurrentParamParts = parts.Skip(1 + prevArgCount).ToArray();
+            var testCurrentParam = string.Join(" ", testCurrentParamParts);
+
+            var testCandidates = cmd.GetAutoParamCandidates(testPrevArgs);
+
+            if (testCandidates != null && testCandidates.Count > 0)
+            {
+                // 如果建议列表中有项以“合并后的参数”开头，说明我们找到了正确的参数边界
+                if (testCandidates.Any(p => p.StartsWith(testCurrentParam, StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    candidates = testCandidates;
+                    currentParamForMatch = testCurrentParam;
+                    firstWordOfParam = testCurrentParamParts[0];
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private static void RemoveRichTextAndTryRematch(TMP_InputField chatField, string txt, Command targetCmd)
     {
         const string rTxtFmt = "<#000000BB><u>";

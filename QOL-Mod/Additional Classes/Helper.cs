@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -191,9 +192,31 @@ public static class Helper
     public static void SendPublicOutput(string msg)
     {
         currentOutputMsg = msg;
-        if (MatchmakingHandler.IsNetworkMatch)
+
+        if (MatchmakingHandler.IsNetworkMatch && networkPlayer != null)
         {
-            networkPlayer.OnTalked(msg);
+            if (GetSteamID(networkPlayer.NetworkSpawnID) == localPlayerSteamID)
+            {
+                networkPlayer.OnTalked(msg);
+            }
+            else
+            {
+                var data = Encoding.UTF8.GetBytes(msg);
+
+                SendMessageToAllClients(data, P2PPackageHandler.MsgType.PlayerTalked,
+                    channel: CheatHelper.GetPlayerEventChannel(networkPlayer.NetworkSpawnID)
+                );
+
+                try
+                {
+                    var syncClientChatMethod = AccessTools.Method(typeof(NetworkPlayer), "SyncClientChat");
+                    syncClientChatMethod.Invoke(networkPlayer, [data]);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"[SendPublicOutput] Failed to sync local chat: {e.Message}");
+                }
+            }
         }
         else
         {
@@ -218,8 +241,22 @@ public static class Helper
         };
 
         currentOutputMsg = msgColor + msg + "</color>";
+
         if (LocalChat == null) return;
-        TMPText.richText = true;
+
+        try
+        {
+            var chatText = Traverse.Create(LocalChat).Field("text").GetValue<TMP_Text>();
+            if (chatText != null)
+            {
+                chatText.richText = true;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("Failed to set richtext on target chat: " + e.Message);
+        }
+
         LocalChat.Talk(currentOutputMsg);
     }
 
@@ -241,30 +278,54 @@ public static class Helper
         }
     }
 
+    private static bool _isLoadingScene;
     public static void LoadAndExecute(string sceneName, Action<GameObject[]> loadedObjsCallback = null)
     {
-        CoroutineRunner.Run(LoadCorotine());
+        CoroutineRunner.Run(LoadCoroutine());
 
-        IEnumerator LoadCorotine()
+        IEnumerator LoadCoroutine()
         {
-            if (LoadedScene.IsValid() && LoadedScene.isLoaded)
+            while (_isLoadingScene)
             {
-                var unloadAsync = SceneManager.UnloadSceneAsync(LoadedScene);
-                yield return new WaitUntil(() => unloadAsync.isDone);
+                yield return null;
             }
 
-            var loadAsync = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-            yield return new WaitUntil(() => loadAsync.isDone);
-            var scene = SceneManager.GetSceneByName(sceneName);
-            LoadedScene = scene;
-            var rootObjs = scene.GetRootGameObjects();
-            foreach (var obj in rootObjs)
+            if (LoadedScene.IsValid() && LoadedScene.isLoaded && LoadedScene.name == sceneName)
             {
-                obj.GetComponent<MonoBehaviour>().enabled = false;
-             
-                obj.gameObject.SetActive(false);
+                var existingRootObjs = LoadedScene.GetRootGameObjects();
+                loadedObjsCallback?.Invoke(existingRootObjs);
+                yield break;
             }
-            loadedObjsCallback?.Invoke(rootObjs);
+
+            _isLoadingScene = true;
+
+            try
+            {
+                if (LoadedScene.IsValid() && LoadedScene.isLoaded)
+                {
+                    var unloadAsync = SceneManager.UnloadSceneAsync(LoadedScene);
+                    if (unloadAsync != null)
+                        yield return new WaitUntil(() => unloadAsync.isDone);
+                }
+
+                var loadAsync = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+                yield return new WaitUntil(() => loadAsync.isDone);
+                var scene = SceneManager.GetSceneByName(sceneName);
+                LoadedScene = scene;
+                var rootObjs = scene.GetRootGameObjects();
+                foreach (var obj in rootObjs)
+                {
+                    var mb = obj.GetComponent<MonoBehaviour>();
+                    if (mb != null) mb.enabled = false;
+
+                    obj.gameObject.SetActive(false);
+                }
+                loadedObjsCallback?.Invoke(rootObjs);
+            }
+            finally
+            {
+                _isLoadingScene = false;
+            }
         }
     }
 

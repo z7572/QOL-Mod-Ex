@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -12,11 +13,11 @@ public class CheatTextManager : MonoBehaviour
 {
     private struct FeatureData
     {
-        public string Name;
         public string Info;
+        public Command Cmd;
     }
 
-    private static readonly Dictionary<Command, FeatureData> activeFeatures = new();
+    private static readonly Dictionary<string, FeatureData> activeFeatures = new();
     private static TextMeshProUGUI cheatTextTMP;
     private static TextMeshProUGUI cheatTextTMP2;
 
@@ -25,13 +26,6 @@ public class CheatTextManager : MonoBehaviour
         CreateTextObject("CheatText", out cheatTextTMP);
         CreateTextObject("CheatText2", out cheatTextTMP2);
         UpdateCheatText();
-    }
-
-    private void Update()
-    {
-        //var rbColor = new HSBColor(Mathf.PingPong(Time.time * RainbowManager.Speed, 1), 1, 1).ToColor();
-        //cheatTextTMP.color = rbColor;
-        //cheatTextTMP2.color = rbColor;
     }
 
     private void CreateTextObject(string name, out TextMeshProUGUI tmpComponent)
@@ -56,34 +50,32 @@ public class CheatTextManager : MonoBehaviour
         tmpComponent.richText = true;
     }
 
-    public static void ToggleFeature(Command cmd, bool isEnabled, string name = "", string info = "")
+    public static void ToggleFeature(Command cmd, bool isEnabled, string name = null, string info = "")
     {
-        if (cmd == null) return;
+        string key = !string.IsNullOrEmpty(name) ? name : cmd?.Name;
+
+        if (string.IsNullOrEmpty(key)) return;
 
         if (isEnabled)
         {
-            if (string.IsNullOrEmpty(name))
+            var data = new FeatureData
             {
-                if (activeFeatures.ContainsKey(cmd))
-                    name = activeFeatures[cmd].Name;
-                else
-                    name = cmd.Name;
-            }
+                Info = info,
+                Cmd = cmd
+            };
 
-            var data = new FeatureData { Name = name, Info = info };
-
-            if (activeFeatures.ContainsKey(cmd))
+            if (activeFeatures.ContainsKey(key))
             {
-                activeFeatures[cmd] = data;
+                activeFeatures[key] = data;
             }
             else
             {
-                activeFeatures.Add(cmd, data);
+                activeFeatures.Add(key, data);
             }
         }
         else
         {
-            activeFeatures.Remove(cmd);
+            activeFeatures.Remove(key);
         }
 
         UpdateCheatText();
@@ -91,26 +83,53 @@ public class CheatTextManager : MonoBehaviour
 
     public static void ClearCheats()
     {
-        var commandsToRemove = new List<Command>();
-        foreach (var cmd in activeFeatures.Keys)
+        var commandsToDisable = new List<Command>();
+
+        foreach (var data in activeFeatures.Values)
         {
-            if (cmd.IsCheat)
+            var cmd = data.Cmd;
+            if (cmd != null && cmd.IsCheat && cmd.IsToggle && cmd.IsEnabled)
             {
-                cmd.IsEnabled = false;
-                commandsToRemove.Add(cmd);
+                commandsToDisable.Add(cmd);
             }
         }
-        foreach (var cmd in commandsToRemove)
+        foreach (var cmd in commandsToDisable)
         {
-            activeFeatures.Remove(cmd);
+            try
+            {
+                cmd.Execute();
+
+                if (cmd.IsEnabled)
+                {
+                    cmd.Execute();
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to disable cheat command: {cmd.Name}" +
+                    $"\n{e.GetType().Name}: {e.Message}");
+            }
+            if (cmd.IsEnabled)
+            {
+                Debug.LogWarning($"Cannot disable cheat command {cmd.Name}, force disabling...");
+                cmd.IsEnabled = false;
+                var keysToRemove = activeFeatures
+                    .Where(kv => kv.Value.Cmd == cmd)
+                    .Select(kv => kv.Key)
+                    .ToList();
+                foreach (var key in keysToRemove)
+                {
+                    activeFeatures.Remove(key);
+                }
+            }
         }
         UpdateCheatText();
     }
 
     private static void UpdateCheatText()
     {
-        var featuresList = activeFeatures.Values
-            .Select(data => FormatFeatureText(data.Name, data.Info))
+        var featuresList = activeFeatures
+            .Select(kv => FormatFeatureText(kv.Key, kv.Value.Info))
             .OrderByDescending(GetTextWidth)
             .ThenBy(s => s)
             .ToList();
@@ -151,8 +170,6 @@ public class RainbowText : MonoBehaviour
 
     private void Update()
     {
-        if (m_TextComponent == null) return;
-
         m_hueOffset += hueSpeed * Time.deltaTime;
         m_hueOffset = Mathf.Repeat(m_hueOffset, 1f);
 
@@ -181,6 +198,7 @@ public class RainbowText : MonoBehaviour
             vertexColors[vertexIndex + 3] = myColor32;
         }
 
+        if (string.IsNullOrEmpty(m_TextComponent.text)) return;
         m_TextComponent.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
     }
 }

@@ -1,8 +1,10 @@
-﻿using HarmonyLib;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
+using HarmonyLib;
 using UnityEngine;
+using Random = UnityEngine.Random;
+using Object = UnityEngine.Object;
 using QOL.Trainer.Patches;
 
 namespace QOL.Trainer;
@@ -83,7 +85,7 @@ public class AILogic(AI aiInstance)
 
         if (targetPosition != Vector3.zero && (!targetInformation || !targetInformation.isDead))
         {
-            FixFlyState(controller, info);
+            //FixFlyState(controller, info);
 
             // Handle Aiming
             HandleAiming(aimer, head, targetPosition, targetingSmoothing, dontAimWhenAttacking, fighting);
@@ -137,6 +139,7 @@ public class AILogic(AI aiInstance)
         return Vector3.zero;
     }
 
+    [Obsolete]
     private void FixFlyState(Controller controller, CharacterInformation info)
     {
         if (controller.canFly)
@@ -164,21 +167,25 @@ public class AILogic(AI aiInstance)
         Transform behaviourTarget, Rigidbody target, float preferredRange, float smoothness, ref float velocity, ref CharacterInformation info)
     {
         // Anti-Falling
-        var rb = controller.GetComponentInChildren<Torso>().GetComponent<Rigidbody>();
-        if (rb != null && rb.velocity.y < -3f && CheckDeathPit(controller))
+        var rb = controller.GetComponentInChildren<Torso>().gameObject.GetComponent<Rigidbody>();
+        if (rb != null && rb.velocity.y < -3f)
         {
-            HandleFallingRecovery(controller, aimer, fighting, target);
+            controller.GetComponent<ChatManager>()?.Talk("I'm falling!");
+            if (CheckDeathPit(controller))
+            {
+                HandleFallingRecovery(controller, aimer, fighting, target);
 
-            Vector3 moveDir = (targetPosition - head.position);
-            moveDir.y = 0;
-            moveDir.Normalize();
+                Vector3 moveDir = (targetPosition - head.position);
+                moveDir.y = 0;
+                moveDir.Normalize();
 
-            float forwardDot = Vector3.Dot(controller.transform.forward, moveDir);
-            float moveInput = forwardDot > 0 ? 1f : -1f;
+                float forwardDot = Vector3.Dot(controller.transform.forward, moveDir);
+                float moveInput = forwardDot > 0 ? 1f : -1f;
 
-            controller.Move(moveInput);
+                controller.Move(moveInput);
 
-            return;
+                return;
+            }
         }
 
         float dist = Vector3.Distance(head.position, targetPosition);
@@ -258,7 +265,7 @@ public class AILogic(AI aiInstance)
                     reactionTime = 0.25f;
                 }
 
-                if (target != null)
+                if (target != null && !controller.canFly)
                 {
                     bool shouldThrow = false;
                     float dist = Vector3.Distance(head.position, targetPosition);
@@ -722,7 +729,7 @@ public class AILogic(AI aiInstance)
             return;
         }
 
-        controller.GetComponent<ChatManager>()?.Talk("!I'm Falling!");
+        controller.GetComponent<ChatManager>()?.Talk("!I'm Falling to Death!");
         aimer.rotation = Quaternion.LookRotation(Vector3.up);
         controller.Attack();
         if (fighting.isSwinging || fighting.counter > 0f)

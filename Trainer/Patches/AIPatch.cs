@@ -11,6 +11,11 @@ namespace QOL.Trainer.Patches
             public AILogic Logic;
         }
 
+        // Disable the random nerf to movement force multiplier
+        [HarmonyPatch("SetStats")]
+        [HarmonyPrefix]
+        public static bool SetStatsPrefix(AI __instance) => false;
+
         [HarmonyPatch("Update")]
         [HarmonyPrefix]
         public static bool UpdateMethodPrefix(AI __instance,

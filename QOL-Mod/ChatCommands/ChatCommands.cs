@@ -30,7 +30,11 @@ public static class ChatCommands
         }),
         new Command("bossmusic", BossMusicCmd, 1, true, new List<string>(5) { "blue", "red", "yellow", "rainbow", "stop" }),
         new Command("bulletcolor", BulletColorCmd, 0, true, new List<string>(8) { "team", "battery", "random", "yellow", "blue", "red", "green", "white" }).MarkAsToggle(),
-        new Command("config", ConfigCmd, 1, true, ConfigHandler.GetConfigKeys().ToList()), // Maybe make this a dynamic param and get the type of config keys
+        new Command("config", ConfigCmd, 1, true, (List<object>)
+        [
+            ConfigHandler.GetConfigKeys().ToList(),
+            new DynamicAutoParams(DynamicAutoParams.ParamType.ConfigKey)
+        ]),
         new Command("deathmsg", DeathMsgCmd, 0, false).MarkAsToggle(),
         new Command("dm", DmCmd, 1, false, PlayerUtils.PlayerColorsParams),
         new Command("fov", FovCmd, 1, true),
@@ -99,19 +103,21 @@ public static class ChatCommands
         new Command("logpkg", LogPkgCmd, 0, true, new List<string>[] { Enum.GetNames(typeof(P2PPackageHandler.MsgType)).ToList() }).MarkAsToggle(),
 
         // Multiple parameters examples
-        new Command("testmulti", null, 1, true, new List<List<string>>
+        new Command("testmulti", null, 1, true, new List<object> // List<List<string>> but DynamicAutoParams.ChainCommand
         {
             new List<string> { "option1", "option2", "option3" },
             null, // Any input allowed
             new List<string> { "sub1", "sub2", "sub3" },
-            new List<string> { "final1", "final2" }
+            new List<string> { "final1", "final2", "testmulti" },
+            new DynamicAutoParams(DynamicAutoParams.ParamType.ChainCommand)
         }),
         new Command("testtree", null, 1, true, new Dictionary<string, object>
         {
             { "branch1", new Dictionary<string, object>
                 {
                     { "leaf1", new List<string> { "value1", "value2" } },
-                    { "leaf2", new List<string> { "value3", "value4" } }
+                    { "leaf2", new List<string> { "value3", "value4" } },
+                    { "testtree", new DynamicAutoParams(DynamicAutoParams.ParamType.ChainCommand) }
                 }
             },
             { "branch2", new List<string> { "optionA", "optionB" } }
@@ -128,7 +134,8 @@ public static class ChatCommands
                 { "branch2", new Dictionary<string, object>
                     {
                         { "nested1", new List<string> { "value1", "value2" } },
-                        { "nested2", new List<string> { "value3", "value4" } }
+                        { "nested2", new List<string> { "value3", "value4" } },
+                        { "testhybrid", new DynamicAutoParams(DynamicAutoParams.ParamType.ChainCommand) }
                     }
                 }
             }
@@ -141,11 +148,12 @@ public static class ChatCommands
         new Command("firepkg", FirePkgCmd, 0, true, PlayerUtils.PlayerColorsParams).MarkAsCheat(),
         new Command("bullethell", BulletHellCmd, 0, true, PlayerUtils.PlayerColorsParamsWithAll).MarkAsCheat(),
         new Command("bulletring", BulletRingCmd, 0, true).MarkAsCheat(),
-        new Command("execute", ExecuteCmd, 2, true, new List<List<string>>
+        new Command("execute", ExecuteCmd, 2, true, new List<object>
         {
-            PlayerUtils.PlayerColorsParams,
-            CmdNames //.Select(cmd => cmd.Substring(1)).ToList() // We cannot select here because CmdNames is null now
+            PlayerUtils.PlayerColorsParamsWithAll,
+            CmdNames, //.Select(cmd => cmd.Substring(1)).ToList() // We cannot select here because CmdNames is null now
             // TODO: Dynamic list of chain command's parameters
+            new DynamicAutoParams(DynamicAutoParams.ParamType.ChainCommand)
         }).MarkAsCheat(),
         new Command("boss", BossCmd, 1, true, new List<string>(5) { "blue", "red", "yellow", "rainbow", "none" }).MarkAsCheat(),
         new Command("blockall", BlockAllCmd, 0, true).MarkAsToggleCheat(),
@@ -203,11 +211,11 @@ public static class ChatCommands
             [ "public", "private" ],
             CmdNames.Select(cmd => cmd.Substring(1)).ToList()
         ];
-        CmdDict["execute"].AutoParams = (List<List<string>>)
+        CmdDict["execute"].AutoParams = (List<object>)
         [
-            PlayerUtils.PlayerColorsParams,
-            CmdNames.Select(cmd => cmd.Substring(1)).ToList()
-            // TODO: Dynamic list of chain command's parameters
+            PlayerUtils.PlayerColorsParamsWithAll,
+            CmdNames.Select(cmd => cmd.Substring(1)).ToList(),
+            new DynamicAutoParams(DynamicAutoParams.ParamType.ChainCommand)
         ];
         CmdDict["maps"].AutoParams = (List<List<string>>)
         [
@@ -1551,44 +1559,77 @@ public static class ChatCommands
     // Execute commands as specified player
     private static void ExecuteCmd(string[] args, Command cmd)
     {
+        // 1. 备份当前上下文 (Backup current context)
         var localController = Helper.controller;
-        var localNetworkPlayer = Helper.networkPlayer;
-        var targetID = args[0] == "all" ? ushort.MaxValue : Helper.GetIDFromColor(args[0]);
-        var targetCommand = args[1].TrimStart(Command.CmdPrefix).ToLower();
-        var argsToExecute = args.Skip(2).ToArray(); // Skip first 2 args (player, command)
+        var localChatManager = Helper.LocalChat;
+        // [特殊处理] 本地模式下 networkPlayer 可能已销毁，访问会导致 NRE，仅在网络模式下备份
+        var localNetworkPlayer = MatchmakingHandler.IsNetworkMatch ? Helper.networkPlayer : null;
 
-        ushort[] targetIDs = [targetID];
+        var targetID = args[0].ToLower() == "all" ? ushort.MaxValue : Helper.GetIDFromColor(args[0]);
+        var targetCommand = args[1].TrimStart(Command.CmdPrefix).ToLower();
+        var argsToExecute = args.Skip(2).ToArray();
+
+        ushort[] targetIDs;
         if (targetID == ushort.MaxValue)
         {
             targetIDs = [.. Helper.controllerHandler.ActivePlayers.Select(p => (ushort)p.playerID)];
         }
-        else if (!PlayerUtils.IsPlayerInLobby(targetID))
+        else
         {
-            cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
-            cmd.SetLogType(Command.LogType.Warning);
-            return;
+            if (!PlayerUtils.IsPlayerInLobby(targetID))
+            {
+                cmd.SetOutputMsg(Helper.GetColorFromID(targetID) + " is not in the lobby.");
+                cmd.SetLogType(Command.LogType.Warning);
+                return;
+            }
+            targetIDs = [targetID];
         }
+
         if (!CmdDict.ContainsKey(targetCommand))
         {
             cmd.SetOutputMsg("Specified command or it's alias not found. See /help for full list of commands.");
             cmd.SetLogType(Command.LogType.Warning);
             return;
         }
+
         foreach (var playerID in targetIDs)
         {
             try
             {
+                // 2. 切换上下文到目标玩家 (Switch context to target)
                 Helper.controller = Helper.GetControllerFromID(playerID);
-                Helper.networkPlayer = Helper.GetNetworkPlayer(playerID);
 
-                // TODO: Fix local chat reference
-                //Helper.LocalChat = 
-                //CmdDict[targetCommand].Execute(argsToExecute);
+                // [核心逻辑] 切换 LocalChat，实现"谁执行谁发言" (Who executes, who speaks)
+                // 这样后续命令调用 SendPublicOutput -> LocalChat.Talk() 时，会在目标头顶显示气泡
+                var targetChat = Helper.controller.GetComponentInChildren<ChatManager>();
+                if (targetChat != null)
+                {
+                    Helper.LocalChat = targetChat;
+                }
+
+                // [特殊处理] 仅在网络模式下切换 networkPlayer
+                if (MatchmakingHandler.IsNetworkMatch)
+                {
+                    Helper.networkPlayer = Helper.GetNetworkPlayer(playerID);
+                }
+
+                // 3. 执行命令
+                CmdDict[targetCommand].Execute(argsToExecute);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ExecuteCmd] Failed for player {playerID}: {ex}");
             }
             finally
             {
+                // 4. 恢复上下文 (Restore context)
                 Helper.controller = localController;
-                Helper.networkPlayer = localNetworkPlayer;
+                Helper.LocalChat = localChatManager; // 恢复原本的 LocalChat
+
+                if (MatchmakingHandler.IsNetworkMatch)
+                {
+                    Helper.networkPlayer = localNetworkPlayer;
+                }
             }
         }
     }
@@ -1914,7 +1955,10 @@ public static class ChatCommands
     private static void SayCmd(string[] args, Command cmd)
     {
         var text = string.Join(" ", args);
-        Helper.networkPlayer.OnTalked(text);
+        if (MatchmakingHandler.IsNetworkMatch)
+            Helper.networkPlayer.OnTalked(text);
+        else
+            Helper.LocalChat.Talk(text);
     }
 
     // Say as specified player

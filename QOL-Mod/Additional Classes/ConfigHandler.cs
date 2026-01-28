@@ -470,4 +470,29 @@ public static class ConfigHandler
             DefaultColors[index] = convColor;
         }
     }
+
+    public static List<string> GetConfigCandidates(string entryKey)
+    {
+        if (!EntriesDict.TryGetValue(entryKey, out var entry))
+            return [];
+
+        var type = entry.SettingType;
+
+        if (type == typeof(bool))
+        {
+            return ["true", "false"];
+        }
+
+        if (type.IsEnum)
+        {
+            return Enum.GetNames(type).ToList();
+        }
+
+        if (type == typeof(Color))
+        {
+            return ["#" + ColorUtility.ToHtmlStringRGBA((Color)entry.DefaultValue)];
+        }
+
+        return [entry.DefaultValue?.ToString() ?? ""];
+    }
 }
