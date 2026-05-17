@@ -1,3 +1,19 @@
+# QOL-Mod-Ex
+
+![GitHub Stars](https://img.shields.io/github/stars/z7572/QOL-Mod-Ex?style=social)
+[![GitHub Release](https://img.shields.io/github/v/release/z7572/QOL-Mod-Ex)](https://github.com/z7572/QOL-Mod-Ex/releases)
+[![Github Downloads](https://img.shields.io/github/downloads/z7572/QOL-Mod-Ex/total?label=Github%20downloads&logo=github)](https://github.com/z7572/QOL-Mod-Ex/releases/latest)
+
+English | [中文](./README_CN.md)
+
+This is a fork of [QOL-Mod](https://github.com/Mn0ky/QOL-Mod) which adds a FEW more features.
+
+*English documentation may be no longer up-to-date or maintained. See [Chinese version](./README_CN.md) instead.*
+
+> *\* CentauriL*
+
+Belows are the original README:
+
 # QOL-Mod
 <p style="text-align: center;">
   <a href="https://forthebadge.com">
