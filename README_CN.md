@@ -38,7 +38,7 @@
 
 ### 单人游戏
 - 移植和优化了 [Trainer](https://github.com/alexcodito/StickFightTheGameTrainer) 的Bot功能
-  - 使用 `/summon <player|bolt|zombie> [isNPC] [dummy|legacyAI]` 生成Bot
+  - 使用 `/summon <player|bolt|zombie> [isPC] [dummy|legacyAI]` 生成Bot
 - Bot现在拥有更先进的AI
   - 移动
   - 近战
@@ -102,7 +102,7 @@
 | /pumpkin     |                                                              |                                                                                                        |
 | /repeat      | `<count\|stop>` `<interval_ms>` `<command>` `[args...]`      | Repeats a command for a specified number of times with an optional interval                            |
 | /say         | `<message>`                                                  | Equals to chat directly, or use /execute to say as specified player(s)                                 |
-| /summon      | `<player\|bolt\|zombie>` `[true\|false]` `[dummy\|legacyAI]` | Local only                                                                                             |
+| /summon      | `<player\|bolt\|zombie>` `[isPC]` `[dummy\|legacyAI]`        | Local only                                                                                             |
 | /suddendeath |                                                              | Local only                                                                                             |
 | /wings       | `<blue\|red\|yellow\|white\|none>` `[add]`                   |                                                                                                        |
 
