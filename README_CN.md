@@ -12,25 +12,8 @@
 
 ### 命令
 - 命令多参数补全支持
-  - 支持多种参数定义方式
-    - 以索引分隔的参数列表 `List<List<string>>`
-    - 树状参数 `Dictionary<string, object>`
-    - 以索引分隔的参数列表 + 树状参数混合 `HybridAutoParams`
-    - 纯混合参数 `List<object>`
-      - 默认以索引分隔，可用 `Dictionary<string, object>` 充当分叉器，匹配失败时进入下一参数
-      - 任意输入参数 `AnyInputParams`
-      - 无限参数 `InfiniteAutoParams`
-        - 可选择是否去重
-      - 无限任意输入参数 `InfiniteAnyInputParams`
-      - 动态参数 `DynamicAutoParams`
-        - 当前的命令列表
-        - 链式子命令调用
-        - 坐标 —— `~`为玩家位置，`^`为鼠标指针位置
-        - 方向 —— `~`为玩家速度方向，`^`为鼠标指针速度方向
-        - 欧拉角 —— `~`为玩家瞄准方向，`^`为鼠标指针速度方向
-        - 配置项
-        - 地图名称
-        - 音乐名称
+  - 支持[多种参数定义方式](#外部注册自定义命令)
+  - 参数以空格分隔，但对于参数内有空格的情况也能正常补全
 - 命令、参数切换（使用 `Tab` / `Ctrl` + `Tab` 或 滚动鼠标滚轮 以正反向切换）
 - 按 `/` 以直接键入命令
 - 在本地游戏（和关卡编辑器）中启用聊天输入框，以随时输入命令
@@ -56,6 +39,7 @@
 
 ## 更改 | 修复 | 优化：
 
+- 为命令添加了 `Command.Option` 字段, 使用 `Command.Toggle(string option)` 来切换
 - 现在可以在地图/武器选择界面按Q/E或左右箭头来快速翻页
 - 每50局自动清除场景中残留的箱子
 - 优化了音乐导入的性能问题，修改了音乐导入逻辑：现在可以在文件名前加上 `01.` 等数字索引来指定导入顺序
@@ -87,24 +71,25 @@
 ### 非作弊命令
 
 #### 添加的命令
-| Command      | Parameters                                                   | Comment                                                                                                |
-| :----------- | :----------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
-| /afk         |                                                              | Can be disabled by others                                                                              |
-| /bossmusic   | `<blue\|red\|yellow\|rainbow\|stop>`                         |                                                                                                        |
-| /bulletcolor | `[team\|battery\|random\|yellow\|blue\|red\|green\|white]`   | Enable or disables bullet color that correspond to player's                                            |
-| /edgearrow   |                                                              | To be or not to be (a cheat), that is the question                                                     |
-| /emoji       | `<emoji_name>`                                               |                                                                                                        |
-| /hikotoko    | `[c]`                                                        | [API](https://developer.hitokoto.cn/sentence/#%E5%8F%A5%E5%AD%90%E7%B1%BB%E5%9E%8B-%E5%8F%82%E6%95%B0) |
-| /join        | `<lobby_id_or_url>`                                          |                                                                                                        |
-| /lobbyinfo   |                                                              |                                                                                                        |
-| /lobbytype   | `[public\|friends\|private\|invisible]`                      | Gets or sets current lobby's lobby type (public, private, friends-only, invisible)                     |
-| /output      | `<public\|private>` `<command>`                              |                                                                                                        |
-| /pumpkin     |                                                              |                                                                                                        |
-| /repeat      | `<count\|stop>` `<interval_ms>` `<command>` `[args...]`      | Repeats a command for a specified number of times with an optional interval                            |
-| /say         | `<message>`                                                  | Equals to chat directly, or use /execute to say as specified player(s)                                 |
-| /summon      | `<player\|bolt\|zombie>` `[isPC]` `[dummy\|legacyAI]`        | Local only                                                                                             |
-| /suddendeath |                                                              | Local only                                                                                             |
-| /wings       | `<blue\|red\|yellow\|white\|none>` `[add]`                   |                                                                                                        |
+| Command        | Parameters                                                 | Comment                                                                                                |
+| :------------- | :--------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| /afk           |                                                            | Can be disabled by others                                                                              |
+| /bossmusic     | `<blue\|red\|yellow\|rainbow\|stop>`                       |                                                                                                        |
+| /bulletcolor   | `[team\|battery\|random\|yellow\|blue\|red\|green\|white]` | Enable or disables bullet color that correspond to player's                                            |
+| /edgearrow     |                                                            | To be or not to be (a cheat), that is the question                                                     |
+| /emoji         | `<emoji_name>`                                             |                                                                                                        |
+| /hikotoko      | `[c]`                                                      | [API](https://developer.hitokoto.cn/sentence/#%E5%8F%A5%E5%AD%90%E7%B1%BB%E5%9E%8B-%E5%8F%82%E6%95%B0) |
+| /join          | `<lobby_id_or_url>`                                        |                                                                                                        |
+| /kingofthehill |                                                            | Local only                                                                                             |
+| /lobbyinfo     |                                                            |                                                                                                        |
+| /lobbytype     | `[public\|friends\|private\|invisible]`                    | Gets or sets current lobby's lobby type (public, private, friends-only, invisible)                     |
+| /output        | `<public\|private>` `<command>`                            |                                                                                                        |
+| /pumpkin       |                                                            |                                                                                                        |
+| /repeat        | `<count\|stop>` `<interval_ms>` `<command>` `[args...]`    | Repeats a command for a specified number of times with an optional interval                            |
+| /say           | `<message>`                                                | Equals to chat directly, or use /execute to say as specified player(s)                                 |
+| /summon        | `<player\|bolt\|zombie>` `[isPC]` `[dummy\|legacyAI]`      | Local only                                                                                             |
+| /suddendeath   |                                                            | Local only                                                                                             |
+| /wings         | `<blue\|red\|yellow\|white\|none>` `[add]`                 |                                                                                                        |
 
 #### 移除的命令
 | Command     | Parameters  | Comment               |
@@ -147,9 +132,10 @@
 | /esp            |                                                                                            |                                                                      |
 | /throwesp       |                                                                                            |                                                                      |
 | /weaponesp      |                                                                                            |                                                                      |
-| /aimesp         |                                                                                            |                                                                      |
+| /aimesp         | `[length]`                                                                                 |                                                                      |
 | /weaponspawnesp |                                                                                            |                                                                      |
 | /hitbox         |                                                                                            |                                                                      |
+| /colliderscope  |                                                                                            |                                                                      |
 | /god            |                                                                                            |                                                                      |
 | /fullauto       |                                                                                            |                                                                      |
 | /quickdraw      |                                                                                            | For Deagle/Revolver/M1, etc.                                         |
@@ -175,6 +161,126 @@
 | /tp             | `<x>` `<y>`                                                                                |                                                                      |
 | /visualbar      | `<target>`                                                                                 |                                                                      |
 | /win            | `[target]` `[MapName\|Index]`                                                              | Set the selected player win and switch to selected or next map       |
+
+---
+
+## 外部注册自定义命令
+
+### 普通参数
+
+| 类型 | 名称 |
+| :----------- | :----- |
+| `List<string>` | 普通参数列表 |
+| `List<List<string>>` | 以索引分隔的参数列表 |
+| `Dictionary<string, object>` | 树状参数 |
+| `HybridAutoParams` | 以索引分隔的参数列表 + 树状参数混合 |
+
+### 混合参数
+
+使用 `List<object>` 作为混合参数，默认以索引分隔，按顺序读取参数。可以在里面填入以下类型的参数：
+
+| 参数类型 | 名称 | 描述 |
+| :----------- | :----- | :---- |
+| `Dictionary<string, object>` | 分叉器 | 当匹配字典内的键都失败时不消耗参数坑位并进入下一参数；字典值还可嵌套 `List<object>` 等混合参数 |
+| `AnyInputParams` | 任意输入参数 | 提示补全对应内容，但实际允许输入任何内容 |
+| `InfiniteAutoParams` | 无限参数 | 占据之后的所有参数位置，无限向后补全参数；可选择补全时是否自动去重，适合用于补全枚举值 |
+| `InfiniteAnyInputParams` | 无限任意输入参数 | 占据之后的所有参数位置，无限向后补全参数；实际允许输入任何内容，可以用于补全Emoji等需要输入任意内容的场景 |
+| `DynamicAutoParams` | 动态参数 | 支持根据情况动态修改的参数 |
+
+### 动态参数
+
+使用 `DynamicAutoParams(DynamicAutoParams.ParamType)` 调用，可放在 `List<object>` 内生效，或直接作为参数使用。
+- `~` 或 `^` 后均可跟随正负数字表示相对偏移量，如 `~-1` , `^2` 等
+
+| 枚举值         | 名称         | 占用参数数量 | 描述                                                                                           |
+| :------------- | :----------- | :----------- | :--------------------------------------------------------------------------------------------- |
+| `CommandList`  | 命令列表     | `1`          | 当前的全部命令的名称列表                                                                       |
+| `ChainCommand` | 链式命令调用 | `1`          | 匹配上一个参数作为命令名，接下来补全该命令的对应参数                                           |
+| `Coordinate`   | 坐标         | `2`          | 默认补全玩家位置，`~`为玩家当前位置，`^`为鼠标指针位置                                         |
+| `Direction`    | 方向         | `2`          | 默认补全当前瞄准方向 (归一化至-1~1) ，`~`为玩家速度方向，`^`为鼠标指针速度方向                 |
+| `EulerAngles`  | 欧拉角       | `3`          | 默认补全当前瞄准角度，`~`为玩家瞄准方向，`^`为鼠标指针速度方向                                 |
+| `ConfigKeys`   | 配置项       | `1`          | 匹配上一个参数作为配置项的键， 接下来补全对应配置项的当前值                                    |
+| `MapName`      | 地图名称     | `1`          | 默认补全地图列表的所有官方地图的名称，并整体旋转地图列表，把下一个将要进入的地图作为首个候选项 |
+| `MusicName`    | 音乐名称     | `1`          | 默认补全BGM列表的所有音乐的名称，并整体旋转音乐列表，把下一个将要播放的音乐作为首个候选项      |
+
+*\* `null`可以用来占位，不补全任何参数*
+
+### 示例
+
+```csharp
+using System;
+using System.Collections.Generic;
+using BepInEx;
+using QOL; // 引用 QOL-Mod 的命名空间
+
+namespace ExternalCommandMod;
+
+[BepInPlugin("com.external.testmulti", "Test Multi Command Mod", "1.0.0")]
+[BepInDependency("monky.plugins.QOL", BepInDependency.DependencyFlags.HardDependency)] // 依赖 QOL-Mod
+public class TestMultiMod : BaseUnityPlugin
+{
+    private void Start()
+    {
+        var testmulti = new Command("testmulti", TestMultiCmd, 0, true, new List<object>
+        {
+            // 第一项：充当“分叉器”的字典
+            new Dictionary<string, object>
+            {
+                // 测试分支 1：嵌套流 + 多跨度参数 (复刻 firepkt 的结构)
+                { "fire", new List<object>
+                    {
+                        new List<string> { "bullet", "laser", "rocket" },
+                        new DynamicAutoParams(DynamicAutoParams.ParamType.Coordinate), // 占据两个位置
+                        new AnyInputParams("速度 (例如: 10)") // 任意输入参数，文本仅起到提示作用
+                    }
+                },
+        
+                // 测试分支 2：无限长度防重参数
+                // 已知BUG: 此时无法补全以及去重
+                { "log", new InfiniteAutoParams(true, "damage", "move", "spawn", "death") },
+
+                // 测试分支 3：动态子命令
+                { "run", new List<object>
+                    {
+                        new DynamicAutoParams(DynamicAutoParams.ParamType.CommandList),
+                        new DynamicAutoParams(DynamicAutoParams.ParamType.ChainCommand)
+                    }
+                },
+
+                // 测试分支 4：无后续参数
+                { "stop", null }
+            },
+
+            // 如果输入的不是 fire/log/run/stop，就会触发以下同级 Fallback 序列
+            new AnyInputParams("ID (Fallback第1位)"), // 和 fire/log/run/stop 同级，可用Tab键切换到该参数
+            new DynamicAutoParams(DynamicAutoParams.ParamType.Coordinate), // Fallback 里测坐标跨度
+            new List<string> { "true", "false" }
+        }),
+
+
+        bool success = ChatCommands.RegisterCommand(testMulti);
+        
+        if (success)
+        {
+            // 命令注册成功
+        }
+            
+        else
+        {
+            // 命令注册失败
+        }
+
+        // 使用 ChatCommands.UnregisterCommand(string CmdName) 方法取消注册命令
+    }
+
+    private void TestMultiCmd(string[] args, Command cmd)
+    {
+        // 你自己的命令逻辑
+        // 在这里手动处理不同参数对应的逻辑
+    }
+}
+
+```
 
 ---
 
