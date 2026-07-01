@@ -8,9 +8,10 @@
 
 这是 [QOL-Mod](https://github.com/Mn0ky/QOL-Mod) 的一个分支版本。
 
-## 特性：
+## 特性
 
 ### 命令
+
 - 命令多参数补全支持
   - 支持[多种参数定义方式](#外部注册自定义命令)
   - 参数以空格分隔，但对于参数内有空格的情况也能正常补全
@@ -20,6 +21,7 @@
 - [更多命令](#更多命令)
 
 ### 单人游戏
+
 - 移植和优化了 [Trainer](https://github.com/alexcodito/StickFightTheGameTrainer) 的Bot功能
   - 使用 `/summon <player|bolt|zombie> [isPC] [dummy|legacyAI]` 生成Bot
 - Bot现在拥有更先进的AI
@@ -36,8 +38,7 @@
   - \* ***不能** 且 **做不到** 寻路*
 - [更多命令](#更多命令)
 
-
-## 更改 | 修复 | 优化：
+## 更改 | 修复 | 优化
 
 - 为命令添加了 `Command.Option` 字段, 使用 `Command.Toggle(string option)` 来切换
 - 现在可以在地图/武器选择界面按Q/E或左右箭头来快速翻页
@@ -46,7 +47,7 @@
 - 修复了当渲染如 Boss翅膀 等粒子效果时，使用 Blink Dagger 瞬移时导致的粒子渲染冻结并残留的问题
 - 修复了在高帧率下，重力子弹的轨迹抖动的问题
 - 修复了自定义玩家颜色导致材质污染的问题
-- 新增配置项： 
+- 新增配置项：
   - `EnableCustomColor` - 设置是否启用自定义玩家颜色（而不是与默认值比较）
   - `CustomNPCColor` - 设置NPC的颜色
   - `ChatFieldProportion` - 调整聊天输入框的宽度
@@ -71,33 +72,37 @@
 ### 非作弊命令
 
 #### 添加的命令
-| Command        | Parameters                                                 | Comment                                                                                                |
-| :------------- | :--------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
-| /afk           |                                                            | Can be disabled by others                                                                              |
-| /bossmusic     | `<blue\|red\|yellow\|rainbow\|stop>`                       |                                                                                                        |
-| /bulletcolor   | `[team\|battery\|random\|yellow\|blue\|red\|green\|white]` | Enable or disables bullet color that correspond to player's                                            |
-| /edgearrow     |                                                            | To be or not to be (a cheat), that is the question                                                     |
-| /emoji         | `<emoji_name>`                                             |                                                                                                        |
-| /hikotoko      | `[c]`                                                      | [API](https://developer.hitokoto.cn/sentence/#%E5%8F%A5%E5%AD%90%E7%B1%BB%E5%9E%8B-%E5%8F%82%E6%95%B0) |
-| /join          | `<lobby_id_or_url>`                                        |                                                                                                        |
-| /kingofthehill |                                                            | Local only                                                                                             |
-| /lobbyinfo     |                                                            |                                                                                                        |
-| /lobbytype     | `[public\|friends\|private\|invisible]`                    | Gets or sets current lobby's lobby type (public, private, friends-only, invisible)                     |
-| /output        | `<public\|private>` `<command>`                            |                                                                                                        |
-| /pumpkin       |                                                            |                                                                                                        |
-| /repeat        | `<count\|stop>` `<interval_ms>` `<command>` `[args...]`    | Repeats a command for a specified number of times with an optional interval                            |
-| /say           | `<message>`                                                | Equals to chat directly, or use /execute to say as specified player(s)                                 |
-| /summon        | `<player\|bolt\|zombie>` `[isPC]` `[dummy\|legacyAI]`      | Local only                                                                                             |
-| /suddendeath   |                                                            | Local only                                                                                             |
-| /wings         | `<blue\|red\|yellow\|white\|none>` `[add]`                 |                                                                                                        |
+
+| Command      | Parameters                                                 | Comment                                                      |
+| :----------- | :--------------------------------------------------------- | :----------------------------------------------------------- |
+| /afk         |                                                            | Can be disabled by others                                    |
+| /blacklist   | `<add\|remove\|list\|clear>` `[color\|index\|steamID]`     |                                                              |
+| /bossmusic   | `<blue\|red\|yellow\|rainbow\|stop>`                       |                                                              |
+| /bulletcolor | `[team\|battery\|random\|yellow\|blue\|red\|green\|white]` | Enable or disables bullet color that correspond to player's  |
+| /cursorpos   |                                                            |                                                              |
+| /emoji       | `[emoji_name]`                                             |                                                              |
+| /hikotoko    | `[c]`                                                      | Changes wintext. See [API](https://developer.hitokoto.cn/sentence/#%E5%8F%A5%E5%AD%90%E7%B1%BB%E5%9E%8B-%E5%8F%82%E6%95%B0) |
+| /join        | `<lobby_id_or_url>`                                        |                                                              |
+| /lobbyinfo   |                                                            |                                                              |
+| /lobbytype   | `[public\|friends\|private\|invisible]`                    | Gets or sets current lobby's lobby type (public, private, friends-only, invisible) |
+| /output      | `<public\|private>` `<command>`                            |                                                              |
+| /pumpkin     |                                                            |                                                              |
+| /repeat      | `<count\|stop>` `<interval_ms>` `<command>` `[args...]`    | Repeats a command for a specified number of times with an optional interval |
+| /say         | `<message>`                                                | Equals to chat directly, or use /execute to say as specified player(s) |
+| /summon      | `<player\|bolt\|zombie>` `[isPC]` `[dummy\|legacyAI]`      | Summon a bot, *Local only*.                                  |
+| /suddendeath |                                                            | Toggle SuddenDeath mode, *Local only*.                       |
+| /koth        |                                                            | Toggle KingOfTheHill mode, *Local only*.                     |
+| /wings       | `<blue\|red\|yellow\|white\|none>` `[add]`                 |                                                              |
 
 #### 移除的命令
+
 | Command     | Parameters  | Comment               |
 | :---------- | :---------- | :-------------------- |
 | /logprivate | `<command>` | 被 `/output` 命令替代 |
 | /logpublic  | `<command>` | 被 `/output` 命令替代 |
 
 #### 更改的命令
+
 | Command  | Parameters                                           | Comment                                                        |
 | :------- | :--------------------------------------------------- | :------------------------------------------------------------- |
 | /config  | `<key> [value]`                                      | 自动补全参数列表进行了更新以支持新结构                         |
@@ -105,9 +110,7 @@
 | /music   | `<loop\|play\|skip\|randomize>` `[musicName\|Index]` | 自动补全更改为字典树结构，并新增了 `randomize`（随机）选项     |
 | /weapons | `<load\|save\|remove>` `<presetName>`               | 参数数量从1个变更为2个，操作逻辑更新（分为了load/save/remove） |
 
-
 ---
-
 
 ### 作弊命令
 
@@ -116,51 +119,58 @@
 > *\* 永远不要尝试在多人模式下执行这些命令*
 
 #### 添加的命令
-| Command         | Parameters                                                                                 | Comment                                                              |
-| :-------------- | :----------------------------------------------------------------------------------------- | :------------------------------------------------------------------- |
-| /afk            | `[canBeDisabledByOthers]`                                                                  |                                                                      |
-| /dmgpkt         | `<target>`                                                                                 |                                                                      |
-| /objpkt         | `<target>` `<objectType\|Index>` `<x>` `<y>` `<rotX>` `<rotY>` `<rotZ>` `[isLocalDisplay]` | Sending object spawn packets to specified player                     |
-| /firepkt        | `<target>` `<x>` `<y>` `<Vx>` `<Vy>` `[weaponName\|Index]` `[isLocalDisplay]`              | Sending fire packets to specified player                             |
-| /bullethell     | `<target>` `[isLocalDisplay]` `[sendInSegments]`                                           |                                                                      |
-| /bulletring     | `<target>` `<weaponIndex>` `[isLocalDisplay]` `[radius]`                                   |                                                                      |
-| /execute        | `<target>` `<command>` `[args...]`                                                         | Execute commands as specified player                                 |
-| /antichat       | `<target>` `[replacementText]`                                                             |                                                                      |
-| /boss           | `<blue\|red\|yellow\|rainbow\|none>`                                                       |                                                                      |
-| /blockall       |                                                                                            |                                                                      |
-| /drag           |                                                                                            |                                                                      |
-| /esp            |                                                                                            |                                                                      |
-| /throwesp       |                                                                                            |                                                                      |
-| /weaponesp      |                                                                                            |                                                                      |
-| /aimesp         | `[length]`                                                                                 |                                                                      |
-| /weaponspawnesp |                                                                                            |                                                                      |
-| /hitbox         |                                                                                            |                                                                      |
-| /colliderscope  |                                                                                            |                                                                      |
-| /god            |                                                                                            |                                                                      |
-| /fullauto       |                                                                                            |                                                                      |
-| /quickdraw      |                                                                                            | For Deagle/Revolver/M1, etc.                                         |
-| /perfectaim     |                                                                                            | Aims from the actual shoot position to the mouse instead of the neck |
-| /norecoil       | `[all\|weapon\|torso]`                                                                     |                                                                      |
-| /nospread       |                                                                                            |                                                                      |
-| /infiniteammo   |                                                                                            |                                                                      |
-| /invisible      |                                                                                            |                                                                      |
-| /fastblock      |                                                                                            |                                                                      |
-| /fastfire       |                                                                                            |                                                                      |
-| /fastpunch      |                                                                                            |                                                                      |
-| /fly            |                                                                                            |                                                                      |
-| /gun            | `<weaponName\|Index\|spawnrandom>`                                                         |                                                                      |
-| /kick           | `<target>` `[method]`                                                                      |                                                                      |
-| /kill           | `[target]`                                                                                 |                                                                      |
-| /revive         |                                                                                            |                                                                      |
-| /scrollattack   |                                                                                            |                                                                      |
-| /showhp         |                                                                                            |                                                                      |
-| /sayas          | `<target>` `<visible\|invisible>` `<message>`                                              | Say as specified player                                              |
-| /spec           |                                                                                            | Be a spectator and skip spawning the own player at joining the match |
-| /switchweapon   |                                                                                            |                                                                      |
-| /throwcalc      |                                                                                            |                                                                      |
-| /tp             | `<x>` `<y>`                                                                                |                                                                      |
-| /visualbar      | `<target>`                                                                                 |                                                                      |
-| /win            | `[target]` `[MapName\|Index]`                                                              | Set the selected player win and switch to selected or next map       |
+
+| Command         | Parameters                                                   | Comment                                                      |
+| :-------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| /afk            | `[canBeDisabledByOthers]`                                    |                                                              |
+| /dmgpkt         | `<target>` `<from>` `<damage>` `[damageType]` `[playParticles]` `[Vx]` `[Vy]` `[killingBlow]` |                                                              |
+| /objpkt         | `<target>` `<objectType\|Index>` `<x>` `<y>` `<rotX>` `<rotY>` `<rotZ>` `[isLocalDisplay]` | Sending object spawn packets to specified player             |
+| /forcepkt       | `<target>` `<all\|rigName\|Index>` `<Vx>` `<Vy>` `<forceMode>` `[sendToAll]` |                                                              |
+| /blockforcepkt  | `<target>` `<all\|rigName\|Index>` `<Vx>` `<Vy>` `<Vz>` `<forceMode>` `[sendToAll]` |                                                              |
+| /banish         | `<target>`                                                   |                                                              |
+| /firepkt        | `<target>` `<x>` `<y>` `<Vx>` `<Vy>` `[weaponName\|Index]` `[isLocalDisplay]` | Sending fire packets to specified player                     |
+| /bullethell     | `<target>` `[isLocalDisplay]` `[sendInSegments]`             |                                                              |
+| /bulletring     | `<target>` `<weaponName\|Index>` `[isLocalDisplay]` `[radius]` |                                                              |
+| /execute        | `<target>` `<command>` `[args...]`                           | Execute commands as specified player                         |
+| /antichat       | `<target>` `[replacementText]`                               |                                                              |
+| /boss           | `<blue\|red\|yellow\|rainbow\|none>`                         |                                                              |
+| /blockall       |                                                              |                                                              |
+| /drag           |                                                              |                                                              |
+| /esp            |                                                              |                                                              |
+| /throwesp       |                                                              |                                                              |
+| /weaponesp      |                                                              |                                                              |
+| /aimesp         | `[length]`                                                   |                                                              |
+| /weaponspawnesp |                                                              |                                                              |
+| /jq             |                                                              | 《记枪》                                                     |
+| /explosionesp   |                                                              |                                                              |
+| /edgearrow      |                                                              |                                                              |
+| /hitbox         |                                                              |                                                              |
+| /colliderscope  | `[default\|overlay]`                                         |                                                              |
+| /god            |                                                              |                                                              |
+| /fullauto       |                                                              |                                                              |
+| /quickdraw      |                                                              | For Deagle/Revolver/M1, etc.                                 |
+| /perfectaim     |                                                              | Aims from the actual shoot position to the mouse instead of the neck |
+| /norecoil       | `[all\|weapon\|torso]`                                       |                                                              |
+| /nospread       |                                                              |                                                              |
+| /infiniteammo   |                                                              |                                                              |
+| /invisible      |                                                              |                                                              |
+| /fastblock      |                                                              |                                                              |
+| /fastfire       |                                                              |                                                              |
+| /fastpunch      |                                                              |                                                              |
+| /fly            |                                                              |                                                              |
+| /gun            | `<weaponName\|Index\|spawnrandom>`                           |                                                              |
+| /kick           | `<target>` `[method]`                                        |                                                              |
+| /kill           | `[target]`                                                   |                                                              |
+| /revive         |                                                              |                                                              |
+| /scrollattack   |                                                              |                                                              |
+| /showhp         |                                                              |                                                              |
+| /sayas          | `<target>` `<visible\|invisible>` `<message>`                | Say as specified player                                      |
+| /spec           |                                                              | Be a spectator and skip spawning the own player at joining the match |
+| /switchweapon   |                                                              |                                                              |
+| /throwcalc      |                                                              |                                                              |
+| /tp             | `<x>` `<y>`                                                  |                                                              |
+| /visualbar      | `<target>`                                                   |                                                              |
+| /win            | `[target]` `[MapName\|Index]`                                | Set the selected player win and switch to selected or next map |
 
 ---
 
@@ -190,7 +200,12 @@
 ### 动态参数
 
 使用 `DynamicAutoParams(DynamicAutoParams.ParamType)` 调用，可放在 `List<object>` 内生效，或直接作为参数使用。
-- `~` 或 `^` 后均可跟随正负数字表示相对偏移量，如 `~-1` , `^2` 等
+
+`~` 或 `^` 后均可跟随符号和数字表示相对偏移
+
+- 对于 `Coordinate` 和 `EulerAngles`，可添加 `1`，`+2`，`-5` 等表示相对增减量
+- 对于 `Direction` ，可添加 `0.5`，`100`， `*50`，`/2` 等表示相对乘除量
+
 
 | 枚举值         | 名称         | 占用参数数量 | 描述                                                                                           |
 | :------------- | :----------- | :----------- | :--------------------------------------------------------------------------------------------- |
@@ -287,6 +302,7 @@ public class TestMultiMod : BaseUnityPlugin
 *以下为原来的README.md文件内容:*
 
 # QOL-Mod
+
 <p style="text-align: center;">
   <a href="https://forthebadge.com">
     <img src="https://forthebadge.com/images/badges/made-with-c-sharp.svg" alt="">
@@ -312,26 +328,28 @@ This mod is a plugin for [BepInEx](https://github.com/BepInEx/BepInEx) which is 
 
 ## Installation
 
-To install the mod, watch the video below, or follow the written steps:<br/> 
-  1)  Download [BepInEx](https://github.com/BepInEx/BepInEx/releases/download/v5.4.19/BepInEx_x86_5.4.19.0.zip).
-  2)  Extract the newly downloaded zip into the ``StickFightTheGame`` folder.
-  3)  Drag all contents from the folder into the ``StickFightTheGame`` folder (``winhttp.dll``, ``doorstop_config.ini``, the ``BepInEx`` folder etc.).
-  4)  Launch the game and then exit (BepInEx will have generated new files and folders).
-  5)  Download the latest version of the QOL mod from the [Releases](https://github.com/Mn0ky/QOL-Mod/releases/latest) section.
-  6)  Put the mod zip into the newly generated folder located at ``BepInEx/plugins`` and **<ins>extract it</ins> to a folder named ``QOL-MOD``** for BepInEx to load.
-  7)  Start the game, join a lobby, and enjoy!
+To install the mod, watch the video below, or follow the written steps:<br/>
 
-#### Installation Tutorial Video:
+  1) Download [BepInEx](https://github.com/BepInEx/BepInEx/releases/download/v5.4.19/BepInEx_x86_5.4.19.0.zip).
+  2) Extract the newly downloaded zip into the ``StickFightTheGame`` folder.
+  3) Drag all contents from the folder into the ``StickFightTheGame`` folder (``winhttp.dll``, ``doorstop_config.ini``, the ``BepInEx`` folder etc.).
+  4) Launch the game and then exit (BepInEx will have generated new files and folders).
+  5) Download the latest version of the QOL mod from the [Releases](https://github.com/Mn0ky/QOL-Mod/releases/latest) section.
+  6) Put the mod zip into the newly generated folder located at ``BepInEx/plugins`` and **<ins>extract it</ins> to a folder named ``QOL-MOD``** for BepInEx to load.
+  7) Start the game, join a lobby, and enjoy!
 
-https://user-images.githubusercontent.com/67206766/161408215-1f6e3d3e-5424-4942-8a4c-0543906c8557.mp4
+#### Installation Tutorial Video
+
+<https://user-images.githubusercontent.com/67206766/161408215-1f6e3d3e-5424-4942-8a4c-0543906c8557.mp4>
 
 ## Caveats
 
 The following are some general things to take note of:
-  - Both the ``/private`` & ``/public`` commands require you to be the host in order to function.
-  - The ``/rich`` command only enables rich text for you, a.k.a client-side only.
-  - The auto-translation feature uses the Google Translate API and has a rate-limit of **``100``** requests per hour.
-  - A custom player color only shows for you, a.k.a client-side only.
+
+- Both the ``/private`` & ``/public`` commands require you to be the host in order to function.
+- The ``/rich`` command only enables rich text for you, a.k.a client-side only.
+- The auto-translation feature uses the Google Translate API and has a rate-limit of **``100``** requests per hour.
+- A custom player color only shows for you, a.k.a client-side only.
 
 ## QOL Menu
 
@@ -340,37 +358,38 @@ It can be opened with the keybind: <kbd>LeftShift</kbd> + <kbd>F1</kbd><br/>
 An image below shows a visual overview:<br/>
 ![Image of QOL Menu](https://i.ibb.co/pXhrfN7/menu-v14.png)<br/>
 Alternative chat commands are listed directly below.
+
 ## Chat Commands
 
 | Command                                    | Description                                                                                                                                                    |
 |--------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Usage:**		                               | ```/<command_name> [<additional parameter>]```                                                                                                                 |
-| /adv		                                     | Outputs whatever you set it to in the config.                                                                                                                  |
+| **Usage:**                                 | ```/<command_name> [<additional parameter>]```                                                                                                                 |
+| /adv                                       | Outputs whatever you set it to in the config.                                                                                                                  |
 | /fov                                       | Set the FOV for the game.                                                                                                                                      |
-| /gg		                                      | Enables automatic sending of "gg" upon death of mod user.                                                                                                      |
-| /help		                                    | Opens up the Steam overlay and takes you to this page.                                                                                                         |
-| /hp	```[<player_color>]```	                | Outputs the percent based health of the target color to chat. Leave as ``/hp`` to always get your own.                                                         |
-| /id	```[<player_color>]```		               | Copies the Steam ID of the target player to clipboard.                                                                                                         |
-| /invite		                                  | Generates a "join game" link and copies it to clipboard.                                                                                                       |
-| /lobhp		                                   | Outputs the health set for the whole lobby.                                                                                                                    |
-| /lobregen		                                | Outputs whether or not regen is enabled for the lobby.                                                                                                         |
-| /lowercase		                               | Enables/disables lowercase mode, which has your chat messages always sent in lowercase. Useful for those who keep pressing the caps-lock key.                  |
-| /nuky		                                    | Lets you talk like Nuky. Splits up any message you send and outputs it word by word.                                                                           |
-| /mute ```[<player_color>]```		             | The targeted player's messages wont appear, making them "muted" for you (**client-side only**. A mute only lasts for the lobby you're currently in).           |
-| /ping ```[<player_color>]```		             | Outpus the ping for the targeted player.                                                                                                                       |
-| /private		                                 | Privates the current lobby (**must be host**).                                                                                                                 |
-| /public		                                  | Opens the current lobby to the public (**must be host**).                                                                                                      |
-| /rainbow		                                 | Enables/disables rainbow mode. Dynamically shifts your player color through the color spectrum (the shifting speed of the colors is changeable in the config). |
-| /rich		                                    | Enables rich text for chat (**client-side only**).                                                                                                             |
-| /shrug ```[<message>]```		                 | Appends ¯\\\_☹\_/¯ to the end of the typed message (changeable in config).                                                                                     |
-| /stat ```[<player_color> <stat_type>]```		 | Gets the targeted stat of the targeted player. Open the stat menu to see a list of different stat names.                                                       |
+| /gg                                        | Enables automatic sending of "gg" upon death of mod user.                                                                                                      |
+| /help                                      | Opens up the Steam overlay and takes you to this page.                                                                                                         |
+| /hp ```[<player_color>]```                 | Outputs the percent based health of the target color to chat. Leave as ``/hp`` to always get your own.                                                         |
+| /id ```[<player_color>]```                 | Copies the Steam ID of the target player to clipboard.                                                                                                         |
+| /invite                                    | Generates a "join game" link and copies it to clipboard.                                                                                                       |
+| /lobhp                                     | Outputs the health set for the whole lobby.                                                                                                                    |
+| /lobregen                                  | Outputs whether or not regen is enabled for the lobby.                                                                                                         |
+| /lowercase                                 | Enables/disables lowercase mode, which has your chat messages always sent in lowercase. Useful for those who keep pressing the caps-lock key.                  |
+| /nuky                                      | Lets you talk like Nuky. Splits up any message you send and outputs it word by word.                                                                           |
+| /mute ```[<player_color>]```               | The targeted player's messages wont appear, making them "muted" for you (**client-side only**. A mute only lasts for the lobby you're currently in).           |
+| /ping ```[<player_color>]```               | Outpus the ping for the targeted player.                                                                                                                       |
+| /private                                   | Privates the current lobby (**must be host**).                                                                                                                 |
+| /public                                    | Opens the current lobby to the public (**must be host**).                                                                                                      |
+| /rainbow                                   | Enables/disables rainbow mode. Dynamically shifts your player color through the color spectrum (the shifting speed of the colors is changeable in the config). |
+| /rich                                      | Enables rich text for chat (**client-side only**).                                                                                                             |
+| /shrug ```[<message>]```                   | Appends ¯\\\_☹\_/¯ to the end of the typed message (changeable in config).                                                                                     |
+| /stat ```[<player_color> <stat_type>]```   | Gets the targeted stat of the targeted player. Open the stat menu to see a list of different stat names.                                                       |
 | /suicide                                   | Kills the user.                                                                                                                                                |
-| /translate		                               | Enables auto-translation for messages from others to English.                                                                                                  |
-| /uncensor		                                | Disables chat censorship.                                                                                                                                      |
-| /uwu		                                     | *uwuifies* any message you send.                                                                                                                               |
-| /ver		                                     | Outputs the mod version string.                                                                                                                                | /winnerhp                                    | Outputs the winner's hp at the end of every round.                                                                                                                                |
+| /translate                                 | Enables auto-translation for messages from others to English.                                                                                                  |
+| /uncensor                                  | Disables chat censorship.                                                                                                                                      |
+| /uwu                                       | *uwuifies* any message you send.                                                                                                                               |
+| /ver                                       | Outputs the mod version string.                                                                                                                                | /winnerhp                                    | Outputs the winner's hp at the end of every round.                                                                                                                                |
 | /winnerhp                                  | Outputs the winner's hp at the end of every round.                                                                                                             |                                                                                                                                                                |
-| /winstreak		                               | Enables winstreak mode.                                                                                                                                        |
+| /winstreak                                 | Enables winstreak mode.                                                                                                                                        |
 
 ## Stat Menu
 
@@ -380,15 +399,17 @@ The stat menu provides an easy way to view the statistics of certain player acti
 ## Using The Config
 
 A configuration file named ``monky.plugins.QOL.cfg`` can be found under ``BepInEx\config``.<br/>
-Please note that you ___must run the mod at least once___ for it to be generated.<br/>
+Please note that you ***must run the mod at least once*** for it to be generated.<br/>
 You can currently use it to set certain features to be enabled on startup.<br/>
-Example: 
+Example:
+
 ```cfg
 ## Enable rich text for chat on startup?
 # Setting type: Boolean
 # Default value: false
 RichTextInChat = true
 ```
+
 Changing ``RichTextInChat = false`` to ``RichTextInChat = true`` will enable it on startup without the need for doing ``/rich`` to enable it.<br/>
 
 To change your player color to a custom value, please look in the config and replace the default value of ``FFFFFFFF`` to a [HEX color](https://g.co/kgs/qJMEDR).<br/>
@@ -396,7 +417,7 @@ An example is the color neon pink, which the HEX value is: ``FF10F0``<br/>
 Please *do <ins>not</ins>* include a ``#`` character at the front of your HEX value.
 
 Another important option to mention for the config is the ability to specify an API key for Google Translate.<br/>
-In doing so, this will allow you to bypass the rate-limit that comes normally with ``/translate``.<br/> 
+In doing so, this will allow you to bypass the rate-limit that comes normally with ``/translate``.<br/>
 **You are responsible for creating the key, and any potential charges accrued.**<br/>
 Instructions & documentation for all of that can be found [here](https://cloud.google.com/translate).<br/>
 
