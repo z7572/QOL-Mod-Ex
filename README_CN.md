@@ -71,28 +71,28 @@
 
 ### 非作弊命令
 
-#### 添加的命令
+#### 
 
 | Command      | Parameters                                                 | Comment                                                      |
 | :----------- | :--------------------------------------------------------- | :----------------------------------------------------------- |
-| /afk         |                                                            | Can be disabled by others                                    |
+| /afk         |                                                            | Can be disabled by others by sending `!afk`                  |
 | /blacklist   | `<add\|remove\|list\|clear>` `[color\|index\|steamID]`     |                                                              |
 | /bossmusic   | `<blue\|red\|yellow\|rainbow\|stop>`                       |                                                              |
 | /bulletcolor | `[team\|battery\|random\|yellow\|blue\|red\|green\|white]` | Enable or disables bullet color that correspond to player's  |
-| /cursorpos   |                                                            |                                                              |
+| /cursorpos   |                                                            | Measure                                                      |
 | /emoji       | `[emoji_name]`                                             |                                                              |
 | /hikotoko    | `[c]`                                                      | Changes wintext. See [API](https://developer.hitokoto.cn/sentence/#%E5%8F%A5%E5%AD%90%E7%B1%BB%E5%9E%8B-%E5%8F%82%E6%95%B0) |
 | /join        | `<lobby_id_or_url>`                                        |                                                              |
-| /lobbyinfo   |                                                            |                                                              |
+| /lobbyinfo   |                                                            | Display WeaponSpawn, HP, Regen                               |
 | /lobbytype   | `[public\|friends\|private\|invisible]`                    | Gets or sets current lobby's lobby type (public, private, friends-only, invisible) |
 | /output      | `<public\|private>` `<command>`                            |                                                              |
-| /pumpkin     |                                                            |                                                              |
+| /pumpkin     |                                                            | Display boss pumpkin                                         |
 | /repeat      | `<count\|stop>` `<interval_ms>` `<command>` `[args...]`    | Repeats a command for a specified number of times with an optional interval |
 | /say         | `<message>`                                                | Equals to chat directly, or use /execute to say as specified player(s) |
 | /summon      | `<player\|bolt\|zombie>` `[isPC]` `[dummy\|legacyAI]`      | Summon a bot, *Local only*.                                  |
 | /suddendeath |                                                            | Toggle SuddenDeath mode, *Local only*.                       |
 | /koth        |                                                            | Toggle KingOfTheHill mode, *Local only*.                     |
-| /wings       | `<blue\|red\|yellow\|white\|none>` `[add]`                 |                                                              |
+| /wings       | `<blue\|red\|yellow\|white\|none>` `[add]`                 | Display boss wings, no rotation force added. Use `add` to display multiple wings |
 
 #### 移除的命令
 
@@ -114,11 +114,7 @@
 
 ### 作弊命令
 
-> *好孩子不应该看这些* <br>
-> *仅****单人模式****生效* <br>
-> *\* 永远不要尝试在多人模式下执行这些命令*
-
-#### 添加的命令
+> *仅**本地游戏**或**私有单人房间**生效* 
 
 | Command         | Parameters                                                   | Comment                                                      |
 | :-------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
@@ -126,30 +122,31 @@
 | /dmgpkt         | `<target>` `<from>` `<damage>` `[damageType]` `[playParticles]` `[Vx]` `[Vy]` `[killingBlow]` |                                                              |
 | /objpkt         | `<target>` `<objectType\|Index>` `<x>` `<y>` `<rotX>` `<rotY>` `<rotZ>` `[isLocalDisplay]` | Sending object spawn packets to specified player             |
 | /forcepkt       | `<target>` `<all\|rigName\|Index>` `<Vx>` `<Vy>` `<forceMode>` `[sendToAll]` |                                                              |
-| /blockforcepkt  | `<target>` `<all\|rigName\|Index>` `<Vx>` `<Vy>` `<Vz>` `<forceMode>` `[sendToAll]` |                                                              |
+| /blockforcepkt  | `<target>` `<all\|rigName\|Index>` `<Vx>` `<Vy>` `<Vz>` `<forceMode>` `[from]` `[sendToAll]` |                                                              |
 | /banish         | `<target>`                                                   |                                                              |
-| /firepkt        | `<target>` `<x>` `<y>` `<Vx>` `<Vy>` `[weaponName\|Index]` `[isLocalDisplay]` | Sending fire packets to specified player                     |
+| /firepkt        | `<target>` `<x>` `<y>` `<Vx>` `<Vy>` `[weaponName\|Index]` `[from]` `[isLocalDisplay]` | Sending fire packets to specified player                     |
 | /bullethell     | `<target>` `[isLocalDisplay]` `[sendInSegments]`             |                                                              |
 | /bulletring     | `<target>` `<weaponName\|Index>` `[isLocalDisplay]` `[radius]` |                                                              |
 | /execute        | `<target>` `<command>` `[args...]`                           | Execute commands as specified player                         |
 | /antichat       | `<target>` `[replacementText]`                               |                                                              |
 | /boss           | `<blue\|red\|yellow\|rainbow\|none>`                         |                                                              |
-| /blockall       |                                                              |                                                              |
-| /drag           |                                                              |                                                              |
+| /blockall       |                                                              | Client-side only                                             |
+| /autoblock      |                                                              |                                                              |
+| /drag           |                                                              | Besiege-style god hand tool                                  |
 | /esp            |                                                              |                                                              |
 | /throwesp       |                                                              |                                                              |
 | /weaponesp      |                                                              |                                                              |
 | /aimesp         | `[length]`                                                   |                                                              |
 | /weaponspawnesp |                                                              |                                                              |
-| /jq             |                                                              | 《记枪》                                                     |
+| /jq             |                                                              | FLL-style autoL tool *(and R)*                               |
 | /explosionesp   |                                                              |                                                              |
-| /edgearrow      |                                                              |                                                              |
-| /hitbox         |                                                              |                                                              |
-| /colliderscope  | `[default\|overlay]`                                         |                                                              |
+| /edgearrow      |                                                              | Points players that out of screen                            |
+| /hitbox         |                                                              | Display the boundaries of all player's colliders             |
+| /colliderscope  | `[default\|overlay]`                                         | Display the boundaries of all colliders                      |
 | /god            |                                                              |                                                              |
 | /fullauto       |                                                              |                                                              |
 | /quickdraw      |                                                              | For Deagle/Revolver/M1, etc.                                 |
-| /perfectaim     |                                                              | Aims from the actual shoot position to the mouse instead of the neck |
+| /perfectaim     |                                                              | Aims from the actual shoot position to the mouse instead of the neck (`Aimer`) |
 | /norecoil       | `[all\|weapon\|torso]`                                       |                                                              |
 | /nospread       |                                                              |                                                              |
 | /infiniteammo   |                                                              |                                                              |
@@ -157,19 +154,19 @@
 | /fastblock      |                                                              |                                                              |
 | /fastfire       |                                                              |                                                              |
 | /fastpunch      |                                                              |                                                              |
-| /fly            |                                                              |                                                              |
+| /fly            |                                                              | Now support sync movement states                             |
 | /gun            | `<weaponName\|Index\|spawnrandom>`                           |                                                              |
 | /kick           | `<target>` `[method]`                                        |                                                              |
 | /kill           | `[target]`                                                   |                                                              |
-| /revive         |                                                              |                                                              |
-| /scrollattack   |                                                              |                                                              |
+| /revive         |                                                              | Client-side only                                             |
+| /scrollattack   |                                                              | Use mouse scroll to attack                                   |
 | /showhp         |                                                              |                                                              |
 | /sayas          | `<target>` `<visible\|invisible>` `<message>`                | Say as specified player                                      |
-| /spec           |                                                              | Be a spectator and skip spawning the own player at joining the match |
+| /spec           |                                                              | Be a spectator and skip spawning the own player at joining the match, chat and command output will possess a player (sometimes bugs) |
 | /switchweapon   |                                                              |                                                              |
 | /throwcalc      |                                                              |                                                              |
 | /tp             | `<x>` `<y>`                                                  |                                                              |
-| /visualbar      | `<target>`                                                   |                                                              |
+| /visualbar      | `<target>`                                                   | Shows `BlockTimer`, `BlockCD` and `FightingCounter`          |
 | /win            | `[target]` `[MapName\|Index]`                                | Set the selected player win and switch to selected or next map |
 
 ---
@@ -201,22 +198,22 @@
 
 使用 `DynamicAutoParams(DynamicAutoParams.ParamType)` 调用，可放在 `List<object>` 内生效，或直接作为参数使用。
 
-`~` 或 `^` 后均可跟随符号和数字表示相对偏移
+`~` 和 `^` （或 `v`） 后均可跟随符号和数字表示相对偏移
 
 - 对于 `Coordinate` 和 `EulerAngles`，可添加 `1`，`+2`，`-5` 等表示相对增减量
 - 对于 `Direction` ，可添加 `0.5`，`100`， `*50`，`/2` 等表示相对乘除量
 
 
-| 枚举值         | 名称         | 占用参数数量 | 描述                                                                                           |
-| :------------- | :----------- | :----------- | :--------------------------------------------------------------------------------------------- |
-| `CommandList`  | 命令列表     | `1`          | 当前的全部命令的名称列表                                                                       |
-| `ChainCommand` | 链式命令调用 | `1`          | 匹配上一个参数作为命令名，接下来补全该命令的对应参数                                           |
-| `Coordinate`   | 坐标         | `2`          | 默认补全玩家位置，`~`为玩家当前位置，`^`为鼠标指针位置                                         |
-| `Direction`    | 方向         | `2`          | 默认补全当前瞄准方向 (归一化至-1~1) ，`~`为玩家速度方向，`^`为鼠标指针速度方向                 |
-| `EulerAngles`  | 欧拉角       | `3`          | 默认补全当前瞄准角度，`~`为玩家瞄准方向，`^`为鼠标指针速度方向                                 |
-| `ConfigKeys`   | 配置项       | `1`          | 匹配上一个参数作为配置项的键， 接下来补全对应配置项的当前值                                    |
+| 枚举值         | 名称         | 占用参数数量 | 描述                                                         |
+| :------------- | :----------- | :----------- | :----------------------------------------------------------- |
+| `CommandList`  | 命令列表     | `1`          | 当前的全部命令的名称列表                                     |
+| `ChainCommand` | 链式命令调用 | `1`          | 匹配上一个参数作为命令名，接下来补全该命令的对应参数         |
+| `Coordinate`   | 坐标         | `2`          | 默认补全玩家位置，`~`为玩家当前位置，`^`为鼠标指针位置       |
+| `Direction`    | 方向         | `2`          | 默认补全当前瞄准方向 (归一化至-1~1) ，`~`为指向玩家，`^`为指向鼠标，`v` 为鼠标指针速度方向 |
+| `EulerAngles`  | 欧拉角       | `3`          | 默认补全当前瞄准角度，`~`为玩家瞄准方向，`^`为鼠标指针速度方向 |
+| `ConfigKeys`   | 配置项       | `1`          | 匹配上一个参数作为配置项的键， 接下来补全对应配置项的当前值  |
 | `MapName`      | 地图名称     | `1`          | 默认补全地图列表的所有官方地图的名称，并整体旋转地图列表，把下一个将要进入的地图作为首个候选项 |
-| `MusicName`    | 音乐名称     | `1`          | 默认补全BGM列表的所有音乐的名称，并整体旋转音乐列表，把下一个将要播放的音乐作为首个候选项      |
+| `MusicName`    | 音乐名称     | `1`          | 默认补全BGM列表的所有音乐的名称，并整体旋转音乐列表，把下一个将要播放的音乐作为首个候选项 |
 
 *\* `null`可以用来占位，不补全任何参数*
 
