@@ -129,10 +129,12 @@
 | /bulletring     | `<target>` `<weaponName\|Index>` `[isLocalDisplay]` `[radius]` |                                                              |
 | /execute        | `<target>` `<command>` `[args...]`                           | Execute commands as specified player                         |
 | /antichat       | `<target>` `[replacementText]`                               |                                                              |
+| /antihide       |                                                              |                                                              |
 | /boss           | `<blue\|red\|yellow\|rainbow\|none>`                         |                                                              |
 | /blockall       |                                                              | Client-side only                                             |
 | /autoblock      |                                                              |                                                              |
 | /drag           |                                                              | Besiege-style god hand tool                                  |
+| /colliderscope  | `[default\|overlay]`                                         | Display the boundaries of all colliders                      |
 | /esp            |                                                              |                                                              |
 | /throwesp       |                                                              |                                                              |
 | /weaponesp      |                                                              |                                                              |
@@ -140,9 +142,10 @@
 | /weaponspawnesp |                                                              |                                                              |
 | /jq             |                                                              | FLL-style autoL tool *(and R)*                               |
 | /explosionesp   |                                                              |                                                              |
+| /presentesp     |                                                              |                                                              |
 | /edgearrow      |                                                              | Points players that out of screen                            |
+| /visualbar      | `<target>`                                                   | Shows `BlockTimer`, `BlockCD` and `FightingCounter`          |
 | /hitbox         |                                                              | Display the boundaries of all player's colliders             |
-| /colliderscope  | `[default\|overlay]`                                         | Display the boundaries of all colliders                      |
 | /god            |                                                              |                                                              |
 | /fullauto       |                                                              |                                                              |
 | /quickdraw      |                                                              | For Deagle/Revolver/M1, etc.                                 |
@@ -150,6 +153,7 @@
 | /norecoil       | `[all\|weapon\|torso]`                                       |                                                              |
 | /nospread       |                                                              |                                                              |
 | /infiniteammo   |                                                              |                                                              |
+| /infinitejump   |                                                              |                                                              |
 | /invisible      |                                                              |                                                              |
 | /fastblock      |                                                              |                                                              |
 | /fastfire       |                                                              |                                                              |
@@ -166,7 +170,6 @@
 | /switchweapon   |                                                              |                                                              |
 | /throwcalc      |                                                              |                                                              |
 | /tp             | `<x>` `<y>`                                                  |                                                              |
-| /visualbar      | `<target>`                                                   | Shows `BlockTimer`, `BlockCD` and `FightingCounter`          |
 | /win            | `[target]` `[MapName\|Index]`                                | Set the selected player win and switch to selected or next map |
 
 ---
